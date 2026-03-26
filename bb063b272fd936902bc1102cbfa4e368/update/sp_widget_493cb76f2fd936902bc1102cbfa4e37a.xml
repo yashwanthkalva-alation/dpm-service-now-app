@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[function ($scope, $timeout, $sce, $location, $anchorScroll) {
+  if ($scope.data && $scope.data.notAllowed) { return; }
+
+  var pre = ($scope.data && $scope.data.prefill) || {};
+
+  $scope.state = {
+    alationHost: pre.alationHost || '',
+    tenantId: pre.tenantId || '',
+    oauthRegistryName: pre.oauthRegistryName || 'Alation Integration OAuth',
+    integrationUsername: pre.integrationUsername || 'alation_integration',
+    oauthScope: pre.oauthScope || '',
+
+    // secrets: never prefill
+    oauthClientSecret: '',
+    integrationPassword: '',
+
+    _loadedHost: pre.alationHost || '',
+    _loadedTenant: pre.tenantId || '',
+    saving: false,
+    rotating: false,
+    saved: false,
+    message: '',
+    error: '',
+
+    tour: { enabled: true, step: 1 }
+  };
+	
+		// Yokohama guided setup
+	var FIXED_INTEGRATION_USERNAME = "alation_integration";
+	var FIXED_OAUTH_REGISTRY_NAME  = "Alation Integration OAuth";
+
+	$scope.state.oauthRegistryName = FIXED_OAUTH_REGISTRY_NAME;
+	$scope.state.integrationUsername = FIXED_INTEGRATION_USERNAME;
+
+	function instanceBase() {
+		try { return window.location.origin; } catch (e) { return ""; }
+	}
+	function navTo(uri) {
+		return instanceBase() + "/nav_to.do?uri=" + encodeURIComponent(uri);
+	}
+
+	// Links (classic UI) - Yokohama
+	var oauthRegistryList = navTo("oauth_entity_list.do");    // System OAuth > Application Registry
+	var oauthNewLink      = navTo("oauth_entity.do?sys_id=-1");
+	var userListLink      = navTo("sys_user_list.do");
+	var newUserLink       = navTo("sys_user.do?sys_id=-1");
+
+// Scope switching help links / destinations
+// This opens the application picker in many instances; if it doesn't in yours,
+// keep it as a "path instruction" step (still useful).
+	var appPickerLink     = navTo("$pa_dashboard.do"); // safe generic landing; scope switch is via header picker
+
+	$scope.tourSteps = {
+		1: {
+			elementId: "step-host-tenant",
+			html: $sce.trustAsHtml(
+				"<b>Step 1 — Enter Alation host and tenant ID</b><br/>" +
+				"Fill in <b>Alation site host</b> and <b>Tenant ID</b> in this page."
+			)
+		},
+		2: {
+			elementId: "step-oauth-registry",
+			html: $sce.trustAsHtml(
+				"<b>Step 2 — Create OAuth registry in Global scope</b><br/>" +
+				"<span class='tour-muted'>Go to: <b>All → System OAuth → Application Registry → New</b></span><br/><br/>" +
+				"Create the registry with name: <span class='tour-fixed'>" + FIXED_OAUTH_REGISTRY_NAME + "</span><br/>" +
+				"Use <b>Set grant type as Password (Resource Owner)</b><br/><br/>" +
+				"<a class='btn btn-default btn-sm' target='_blank' href='" + oauthNewLink + "'>Open: New Application Registry</a> " +
+				"<a class='btn btn-link btn-sm' target='_blank' href='" + oauthRegistryList + "'>Open: Registry list</a>"
+			)
+		},
+		3: {
+			elementId: "step-integration-user",
+			html: $sce.trustAsHtml(
+				"<b>Step 3 — Create integration user in Global scope</b><br/>" +
+				"<span class='tour-muted'>Go to: <b>All → User Administration → Users → New</b></span><br/><br/>" +
+				"Create username: <span class='tour-fixed'>" + FIXED_INTEGRATION_USERNAME + "</span><br/>" +
+				"Set Password for this User<br/>" +
+				"<b>Note:</b> On the user form, check <b>Internal Integration User</b>.<br/>" +
+				"Assign the role <span class='tour-fixed'>x_alati_snow_intgr.admin</span> to this user under the <b>Roles</b> tab.<br/><br/>" +
+				"<a class='btn btn-default btn-sm' target='_blank' href='" + newUserLink + "'>Open: New User</a> " +
+				"<a class='btn btn-link btn-sm' target='_blank' href='" + userListLink + "'>Open: Users list</a>"
+			)
+		},
+		4: {
+			elementId: "step-scope-switch",
+			html: $sce.trustAsHtml(
+				"<b>Step 4 — Switch scope to Alation Integration for ServiceNow</b><br/>" +
+				"Use the <b>Application scope</b> picker in the header (top bar) and select:<br/>" +
+				"<span class='tour-fixed'>Alation Integration for ServiceNow</span><br/><br/>" +
+				"<span class='tour-muted'>Why: Saving properties / running scripts should happen in the app scope.</span><br/><br/>" +
+				"<a class='btn btn-link btn-sm' target='_blank' href='" + appPickerLink + "'>Open: Application navigator</a>"
+			)
+		},
+		5: {
+			elementId: "step-save",
+			html: $sce.trustAsHtml(
+				"<b>Step 5 — Paste secrets and Save</b><br/>" +
+				"Paste <b>OAuth Client Secret</b> and the <b>integration user password</b>, then click <b>Save</b>."
+			)
+		}
+	};
+
+	// ---- Guided tour (single source of truth) ----
+	$scope.tourStepCount = Object.keys($scope.tourSteps).length;
+
+	$scope.tourClass = function (step) {
+		if (!$scope.state.tour.enabled) return "";
+		return ($scope.state.tour.step === step) ? "tour-highlight" : "";
+	};
+
+	function scrollToElement(id) {
+		$timeout(function () {
+			var el = document.getElementById(id);
+			if (el && el.scrollIntoView) {
+				el.scrollIntoView({ behavior: "smooth", block: "center" });
+			}
+		}, 50);
+	}
+
+	$scope.goToStep = function (step) {
+		if (!$scope.tourSteps[step]) return;
+		$scope.state.tour.step = step;
+		scrollToElement($scope.tourSteps[step].elementId);
+	};
+
+	$scope.tourNext = function () {
+		if ($scope.state.tour.step < $scope.tourStepCount) {
+			$scope.goToStep($scope.state.tour.step + 1);
+		}
+	};
+
+	$scope.tourPrev = function () {
+		if ($scope.state.tour.step > 1) {
+			$scope.goToStep($scope.state.tour.step - 1);
+		}
+	};
+
+	// Start tour
+	$timeout(function () { $scope.goToStep(1); }, 0);
+
+  var hostRe = /^([a-z0-9-]+\.)+alationcloud\.com$/i;
+  function strip(v) { return (v || '').replace(/^\s+|\s+$/g, ''); }
+
+  $scope.validHost = function () {
+    var h = $scope.state.alationHost || '';
+    return h && hostRe.test(h);
+  };
+
+  function secretsPresent() {
+    return !!strip($scope.state.oauthClientSecret) && !!strip($scope.state.integrationPassword);
+  }
+
+  $scope.canSave = function () {
+    if ($scope.state.saving || $scope.state.rotating) return false;
+    if (!$scope.validHost()) return false;
+    if (!strip($scope.state.tenantId)) return false;
+
+    // require secrets for password grant
+    if (!secretsPresent()) return false;
+
+    // allow save if host/tenant changed OR secrets were entered (first-time config)
+    var hostChanged = strip($scope.state.alationHost) !== strip($scope.state._loadedHost);
+    var tenantChanged = strip($scope.state.tenantId) !== strip($scope.state._loadedTenant);
+
+    return hostChanged || tenantChanged || secretsPresent(); // secrets entry should allow save
+  };
+
+  $scope.canRotate = function () {
+    if ($scope.state.saving || $scope.state.rotating) return false;
+    return !!strip($scope.state._loadedHost) && !!strip($scope.state._loadedTenant);
+  };
+
+  function load() {
+    var ga = new GlideAjax('x_alati_snow_intgr.AlationSettingsAjax');
+    ga.addParam('sysparm_name', 'get');
+    ga.getXMLAnswer(function (answer) {
+      if (!answer) return;
+      var j; try { j = JSON.parse(answer); } catch (e) { return; }
+      if (j && j.ok) {
+        $scope.$apply(function () {
+          $scope.state.alationHost = j.alationHost || $scope.state.alationHost;
+          $scope.state.tenantId = j.tenantId || $scope.state.tenantId;
+
+          $scope.state.oauthRegistryName = j.oauthRegistryName || $scope.state.oauthRegistryName;
+          $scope.state.integrationUsername = j.integrationUsername || $scope.state.integrationUsername;
+          $scope.state.oauthScope = j.oauthScope || $scope.state.oauthScope;
+
+          $scope.state._loadedHost = strip($scope.state.alationHost);
+          $scope.state._loadedTenant = strip($scope.state.tenantId);
+        });
+      }
+    });
+  }
+
+  $scope.save = function () {
+    $scope.state.saving = true;
+    $scope.state.saved = false;
+    $scope.state.message = '';
+    $scope.state.error = '';
+
+    var ga = new GlideAjax('x_alati_snow_intgr.AlationSettingsAjax');
+    ga.addParam('sysparm_name', 'save');
+
+    ga.addParam('sysparm_alation_host', strip($scope.state.alationHost));
+    ga.addParam('sysparm_tenant_id', strip($scope.state.tenantId));
+
+    // NEW: oauth fields + integration user creds
+    ga.addParam('sysparm_oauth_registry_name', strip($scope.state.oauthRegistryName));
+    ga.addParam('sysparm_oauth_client_secret', strip($scope.state.oauthClientSecret));
+    ga.addParam('sysparm_oauth_scope', strip($scope.state.oauthScope));
+
+    ga.addParam('sysparm_integration_username', strip($scope.state.integrationUsername));
+    ga.addParam('sysparm_integration_password', strip($scope.state.integrationPassword));
+
+    ga.getXMLAnswer(function (answer) {
+      $scope.$apply(function () {
+        $scope.state.saving = false;
+
+        var j; try { j = JSON.parse(answer || '{}'); } catch (e) { j = null; }
+        if (j && j.ok) {
+          $scope.state.saved = true;
+          $scope.state.message = j.message || 'Settings updated.';
+
+          $scope.state._loadedHost = strip($scope.state.alationHost);
+          $scope.state._loadedTenant = strip($scope.state.tenantId);
+
+          // wipe secrets from UI after save (recommended)
+          $scope.state.oauthClientSecret = '';
+          $scope.state.integrationPassword = '';
+        } else {
+          $scope.state.error = (j && j.error) ? j.error : 'Failed to save';
+        }
+      });
+    });
+  };
+
+  $scope.regenerate = function () {
+    if (!$scope.canRotate()) return;
+    $scope.state.rotating = true;
+    $scope.state.saved = false;
+    $scope.state.message = '';
+    $scope.state.error = '';
+
+    var ga = new GlideAjax('x_alati_snow_intgr.AlationSettingsAjax');
+    ga.addParam('sysparm_name', 'rotate_token');
+    ga.getXMLAnswer(function (answer) {
+      $scope.$apply(function () {
+        $scope.state.rotating = false;
+        var j; try { j = JSON.parse(answer || '{}'); } catch (e) { j = null; }
+        if (j && j.ok) {
+          $scope.state.saved = true;
+          $scope.state.message = j.message || 'New token generated & registered.';
+        } else {
+          $scope.state.error = (j && j.error) ? j.error : 'Failed to rotate token';
+        }
+      });
+    });
+  };
+
+  $scope.tenantHint = function () {
+    var h = strip($scope.state.alationHost);
+    var url = h ? ('https://' + h + '/app/build-info/') : 'https://<alation-host>/app/build-info/';
+    return 'Visit ' + url + ' to find your tenant ID';
+  };
+
+  load();
+}]]></client_script>
+        <controller_as>c</controller_as>
+        <css>small { color: #6b6b6b; }
+
+&lt;style&gt;
+  .readonly-like-disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+  }
+&lt;/style&gt;</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>false</has_preview>
+        <id>alation_snow_integration_ui</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
+        <name>Alation SNow Integration UI</name>
+        <option_schema/>
+        <public>false</public>
+        <roles>admin,x_alati_snow_intgr.admin</roles>
+        <script><![CDATA[data.prefill = {
+  alationHost: gs.getProperty('x_alati_snow_intgr.alation_host') || '',
+  tenantId: gs.getProperty('x_alati_snow_intgr.tenant_id') || '',
+
+  oauthRegistryName: gs.getProperty('x_alati_snow_intgr.oauth_registry_name') || 'Alation Integration OAuth',
+  integrationUsername: gs.getProperty('x_alati_snow_intgr.integration_user_name') || 'alation_integration',
+  oauthScope: gs.getProperty('x_alati_snow_intgr.oauth_scope') || ''
+};
+
+if (!gs.hasRole('admin') && !gs.hasRole('x_alati_snow_intgr.admin')) {
+  data.notAllowed = true;
+}]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 11:40:16</sys_created_on>
+        <sys_id>493cb76f2fd936902bc1102cbfa4e37a</sys_id>
+        <sys_mod_count>25</sys_mod_count>
+        <sys_name>Alation SNow Integration UI</sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sp_widget_493cb76f2fd936902bc1102cbfa4e37a</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-16 10:43:49</sys_updated_on>
+        <template><![CDATA[<!-- Guided Setup (Yokohama) -->
+<div class="panel panel-info" ng-if="state.tour.enabled">
+  <div class="panel-heading">
+    <h4 class="panel-title">
+      Configuration Guide
+      <button class="btn btn-xs btn-link pull-right" ng-click="state.tour.enabled=false">Close</button>
+    </h4>
+  </div>
+
+  <div class="panel-body">
+    <div class="alert alert-info" style="margin-bottom:10px" ng-bind-html="tourSteps[state.tour.step].html"></div>
+
+    <div class="btn-toolbar">
+      <button class="btn btn-default btn-sm"
+              ng-click="tourPrev()"
+              ng-disabled="state.tour.step === 1">
+        Back
+      </button>
+
+      <button class="btn btn-primary btn-sm"
+              ng-click="tourNext()"
+              ng-disabled="state.tour.step === tourStepCount">
+        Next
+      </button>
+
+      <button class="btn btn-default btn-sm"
+              ng-click="goToStep(1)">
+        Restart
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+.tour-highlight {
+  border: 2px solid #0b5cab; /* close to SN blue */
+  border-radius: 6px;
+  padding: 12px;
+  background: #f4f8ff;
+}
+.tour-muted {
+  color: #666;
+  font-size: 12px;
+}
+.tour-fixed {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  background: #f7f7f7;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+</style>
+<div class="panel panel-default" ng-if="!data.notAllowed">
+  <div class="panel-heading"><h4>Connect ServiceNow to Alation</h4></div>
+
+  <div class="panel-body">
+
+    <!-- Alerts -->
+    <div ng-if="state.message" class="alert alert-success">{{::state.message}}</div>
+    <div ng-if="state.error" class="alert alert-danger">{{::state.error}}</div>
+    <!-- Step 1: Host + Tenant (wrap both in one container) -->
+    <div id="step-host-tenant" ng-class="tourClass(1)">
+      <div class="form-group">
+        <label>Alation site host</label>
+        <input type="text" class="form-control"
+               placeholder="xyz.alationcloud.com"
+               ng-model="state.alationHost">
+        <small ng-if="!validHost() && state.alationHost">Host must look like xyz.alationcloud.com</small>
+      </div>
+
+      <div class="form-group">
+        <label>Alation Tenant ID</label>
+        <input type="text" class="form-control"
+               placeholder="Enter tenant ID"
+               ng-model="state.tenantId">
+        <small ng-bind="tenantHint()"></small>
+      </div>
+    </div>
+
+    <hr/>
+
+    <!-- Step 2: OAuth registry (fixed name) -->
+    <div class="form-group" id="step-oauth-registry" ng-class="tourClass(2)">
+      <label>OAuth Application Registry Name (fixed)</label>
+      <input type="text" class="form-control"
+             ng-model="state.oauthRegistryName"
+             ng-readonly="true"
+             tabindex="-1"
+             aria-readonly="true">
+      <small>Create the OAuth Application Registry in <b>Global</b> scope with this exact name.</small>
+    </div>
+
+    <!-- Step 3: Integration user (fixed username) -->
+    <div class="form-group" id="step-integration-user" ng-class="tourClass(3)">
+      <label>Integration Username (fixed)</label>
+      <input type="text" class="form-control"
+             ng-model="state.integrationUsername"
+             ng-readonly="true"
+             tabindex="-1"
+             aria-readonly="true">
+      <small>Create this user in <b>Global</b> scope and check <b>Integration user</b> on the user form.</small>
+    </div>
+
+    <hr/>
+
+    <!-- Step 4: Switch scope instructions (not a real field, but highlight a callout) -->
+    <div id="step-scope-switch" ng-class="tourClass(4)" class="alert alert-warning">
+      <b>Scope reminder:</b> After creating the Global OAuth registry and user, switch scope to
+      <b>Alation Integration for ServiceNow</b> before saving these settings.
+    </div>
+
+    <!-- Step 5: Secrets + Save (wrap both secrets + button in one container) -->
+    <div id="step-save" ng-class="tourClass(5)">
+      <div class="form-group">
+        <label>OAuth Client Secret</label>
+        <input type="password" class="form-control"
+               ng-model="state.oauthClientSecret"
+               placeholder="Paste Client Secret from OAuth registry">
+        <small>Stored securely (password2 sys_property) and not shown again.</small>
+      </div>
+
+      <div class="form-group">
+        <label>Integration User Password</label>
+        <input type="password" class="form-control"
+               ng-model="state.integrationPassword"
+               placeholder="Paste password for password grant">
+        <small>Stored securely (password2 sys_property) and not shown again.</small>
+      </div>
+
+      <div class="btn-toolbar">
+        <button class="btn btn-primary"
+                ng-click="save()"
+                ng-disabled="!canSave()">
+          {{ state.saving ? 'Saving…' : 'Save' }}
+        </button>
+      </div>
+    </div>
+
+      </div>
+    </div>
+
+<div class="alert alert-danger" ng-if="data.notAllowed">
+  Not authorized.
+</div>
+
+<style>
+/* Simple highlight for guided setup */
+.tour-highlight {
+  border: 2px solid #337ab7;
+  padding: 10px;
+  border-radius: 4px;
+}
+</style>]]></template>
+    </sp_widget>
+    <sys_es_latest_script action="INSERT_OR_UPDATE">
+        <id>493cb76f2fd936902bc1102cbfa4e37a</id>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 11:40:16</sys_created_on>
+        <sys_id>0d3cb76f2fd936902bc1102cbfa4e37f</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-25 11:40:16</sys_updated_on>
+        <table>sp_widget</table>
+        <use_es_latest>true</use_es_latest>
+    </sys_es_latest_script>
+</record_update>

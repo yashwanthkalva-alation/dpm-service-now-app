@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_app">
+    <sys_app action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <can_edit_in_studio>true</can_edit_in_studio>
+        <enforce_license>log</enforce_license>
+        <guided_setup_guid/>
+        <hide_on_ui>false</hide_on_ui>
+        <ide_created>GAC</ide_created>
+        <installed_as_dependency>false</installed_as_dependency>
+        <js_level>es_latest</js_level>
+        <licensable>true</licensable>
+        <license/>
+        <license_category>none</license_category>
+        <license_definition/>
+        <license_model>none</license_model>
+        <logo>150cc8f72f5d36902bc1102cbfa4e39a</logo>
+        <menu/>
+        <name>Alation Integration for ServiceNow</name>
+        <package_json/>
+        <private>false</private>
+        <restrict_table_access>false</restrict_table_access>
+        <runtime_access_tracking>permissive</runtime_access_tracking>
+        <scope>x_alati_snow_intgr</scope>
+        <scoped_administration>false</scoped_administration>
+        <short_description>Alation ServiceNow Incident Integration enables automatic creation and synchronization of incidents in ServiceNow directly from Alation.</short_description>
+        <source>x_alati_snow_intgr</source>
+        <store_correlation_id>REPOAPP0002469605</store_correlation_id>
+        <store_url>https://tpp.servicenow.com/sn_appstore_s</store_url>
+        <subscription_entitlement/>
+        <sys_class_name>sys_app</sys_class_name>
+        <sys_code/>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 11:13:25</sys_created_on>
+        <sys_id>bb063b272fd936902bc1102cbfa4e368</sys_id>
+        <sys_mod_count>19</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-18 03:32:44</sys_updated_on>
+        <template/>
+        <trackable>true</trackable>
+        <uninstall_blocked>false</uninstall_blocked>
+        <user_role/>
+        <vendor/>
+        <vendor_prefix/>
+        <version>1.0.6</version>
+    </sys_app>
+    <sys_translated_text action="delete_multiple" query="documentkey=bb063b272fd936902bc1102cbfa4e368"/>
+    <sys_attachment action="INSERT_OR_UPDATE">
+        <average_image_color>#ffffff</average_image_color>
+        <chunk_size_bytes>700000</chunk_size_bytes>
+        <compressed>true</compressed>
+        <content_type>image/png</content_type>
+        <file_name>logo</file_name>
+        <hash>ff74baf4f7152d1a4f4ebdfba468fbf42c2b7ea3c7558fb45b142817ec20896b</hash>
+        <image_height>512</image_height>
+        <image_width>512</image_width>
+        <size_bytes>2006</size_bytes>
+        <size_compressed>1977</size_compressed>
+        <state>available</state>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 12:49:21</sys_created_on>
+        <sys_id>150cc8f72f5d36902bc1102cbfa4e39a</sys_id>
+        <sys_mod_count>3</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-25 12:49:22</sys_updated_on>
+        <table_name>ZZ_YYsys_app</table_name>
+        <table_sys_id>bb063b272fd936902bc1102cbfa4e368</table_sys_id>
+    </sys_attachment>
+    <sys_attachment_doc action="INSERT_OR_UPDATE">
+        <data>H4sIAAAAAAAA/w==</data>
+        <length>16</length>
+        <position>0</position>
+        <sys_attachment display_value="logo" sys_id="150cc8f72f5d36902bc1102cbfa4e39a">150cc8f72f5d36902bc1102cbfa4e39a</sys_attachment>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 12:49:21</sys_created_on>
+        <sys_id>550cc8f72f5d36902bc1102cbfa4e39a</sys_id>
+    </sys_attachment_doc>
+    <sys_attachment_doc action="INSERT_OR_UPDATE">
+        <data>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</data>
+        <length>2624</length>
+        <position>1</position>
+        <sys_attachment display_value="logo" sys_id="150cc8f72f5d36902bc1102cbfa4e39a">150cc8f72f5d36902bc1102cbfa4e39a</sys_attachment>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 12:49:21</sys_created_on>
+        <sys_id>190cc8f72f5d36902bc1102cbfa4e39a</sys_id>
+    </sys_attachment_doc>
+</record_update>

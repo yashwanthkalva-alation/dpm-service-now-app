@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_alati_snow_intgr.AlationOutbound</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description/>
+        <mobile_callable>false</mobile_callable>
+        <name>AlationOutbound</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var AlationOutbound = Class.create();
+AlationOutbound.prototype = {
+  initialize: function () {},
+
+  _refDisplay: function (table, sysId, displayCol) {
+    try {
+      if (!sysId) return null;
+      var gr = new GlideRecord(table);
+      if (gr.get(String(sysId))) {
+        if (displayCol && gr.getElement(displayCol)) {
+          return String(gr.getValue(displayCol) || gr.getDisplayValue());
+        }
+        return String(gr.getDisplayValue());
+      }
+    } catch (e) {}
+    return null;
+  },
+
+  _choiceLabel: function (table, element, value) {
+    if (!value) return "";
+    try {
+      var c = new GlideRecord('sys_choice');
+      c.addQuery('name', table);
+      c.addQuery('element', element);
+      c.addQuery('value', String(value));
+      c.addQuery('inactive', false);
+      c.setLimit(1);
+      c.query();
+      if (c.next()) return String(c.label || c.value);
+    } catch (e) {}
+    return String(value);
+  },
+
+  // Build a sys_user object {account_id, display_name, user_name, email}
+  _buildUser: function (sysId) {
+    try {
+      var id = String(sysId || '').trim();
+      if (!id) return null;
+      var u = new GlideRecord('sys_user');
+      if (!u.get(id)) return null;
+      return {
+        account_id:   String(u.sys_id),
+        display_name: String(u.name),
+        user_name:    String(u.user_name),
+        email:        String(u.email)
+      };
+    } catch (e) {
+      return null;
+    }
+  },
+
+  _collectChanges: function (current) {
+    var FIELDS = [
+      'short_description', 'description',
+      'state', 'priority',
+      'assignment_group', 'assigned_to'
+    ];
+
+    var changes = [];
+    for (var i = 0; i < FIELDS.length; i++) {
+      var f = FIELDS[i];
+
+      var curVal = String(current.getValue(f) || '');
+      var prevVal = '';
+      try {
+        prevVal = String(current[f].getPreviousValue() || '');
+      } catch (e) {}
+
+      if (curVal === prevVal) continue;
+
+      var fromStr = prevVal, toStr = curVal;
+
+      // friendly strings for enum/ref fields
+      if (f === 'state') {
+        fromStr = this._choiceLabel('incident', f, prevVal);
+        toStr   = this._choiceLabel('incident', f, curVal);
+      } else if (f === 'assignment_group') {
+        fromStr = this._refDisplay('sys_user_group', prevVal, 'name') || prevVal;
+        toStr   = this._refDisplay('sys_user_group', curVal, 'name') || curVal;
+      } else if (f === 'assigned_to') {
+        fromStr = this._refDisplay('sys_user', prevVal, 'name') || prevVal;
+        toStr   = this._refDisplay('sys_user', curVal, 'name') || curVal;
+      } else if (f === 'priority') {
+		fromStr = this._choiceLabel('task', f, prevVal);
+		toStr   = this._choiceLabel('task', f, curVal);
+      }
+
+      changes.push({
+        field: f,
+        from: prevVal,
+        to: curVal,
+        fromString: fromStr,
+        toString: toStr
+      });
+    }
+    return changes;
+  },
+
+  // Build the full payload for Go
+  _buildPayload: function (incGr, changes) {
+    var utils = new AlationUtils();
+
+	var extId = String(incGr.correlation_id || '');
+
+    return {
+      number: String(incGr.number),
+      externalIncidentId: extId,
+      updatedAt: new GlideDateTime().getDisplayValueInternal(),
+      changelog: { items: changes || [] },
+    };
+  },
+
+  _sendToGo: function (payload) {
+  var utils  = new AlationUtils();
+  var host   = gs.getProperty('x_alati_snow_intgr.alation_host') || '';
+  var tenant = gs.getProperty('x_alati_snow_intgr.tenant_id')    || '';
+  if (!utils.isValidAlationHost(host) || !tenant) {
+    return { ok:false, reason:'host/tenant not configured' };
+  }
+
+  var apiKey = (gs.getProperty('x_alati_snow_intgr.api_key') || '').trim();
+  if (!apiKey) {
+    return { ok:false, reason:'api key not configured' };
+  }
+
+  var goBase = 'https://' + utils.normalizeHost(host);
+  var finalUrl = goBase + '/snow/api/incident';
+
+  try {
+    var r = new sn_ws.RESTMessageV2('Alation IMS Outbound', 'notifyIncidentChange');
+
+    r.setEndpoint(finalUrl);
+    r.setRequestHeader('Content-Type', 'application/json');
+    r.setRequestHeader('Authorization', 'Bearer ' + apiKey);
+    r.setRequestHeader('Cookie', 'service.zeus.tenant.id=' + tenant);
+
+    r.setRequestBody(JSON.stringify(payload));
+
+    var res = r.executeAsync();
+
+    return { ok:true};
+
+  } catch (e) {
+    gs.warn('[x_alati_snow_intgr] outbound error: ' + e);
+    return { ok:false, reason: String(e) };
+  }
+},
+
+  notifyIncidentChange: function (current) {
+    try {
+      // Only incidents created by the app will have correlation_id set
+      var extId = String(current.getValue('correlation_id') || '').trim();
+      if (!extId) return; // skip non-Alation incidents
+
+      var changes = this._collectChanges(current);
+      if (!changes.length) return; // nothing interesting changed
+
+      var payload = this._buildPayload(current, changes);
+      this._sendToGo(payload);
+    } catch (e) {
+      gs.warn('[x_alati_snow_intgr] notifyIncidentChange failed: ' + e);
+    }
+  },
+
+  sendSnapshotBySysId: function (sysId) {
+    var inc = new GlideRecord('incident');
+    if (!inc.get(String(sysId))) return { ok:false, reason:'not found' };
+    if (!String(inc.correlation_id || '').trim()) return { ok:false, reason:'externalIncidentId missing' };
+
+    var payload = this._buildPayload(inc, []);
+    return this._sendToGo(payload);
+  },
+
+  type: 'AlationOutbound'
+};
+]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 11:20:17</sys_created_on>
+        <sys_id>d9577fa72fd936902bc1102cbfa4e3df</sys_id>
+        <sys_mod_count>10</sys_mod_count>
+        <sys_name>AlationOutbound</sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sys_script_include_d9577fa72fd936902bc1102cbfa4e3df</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-28 10:30:52</sys_updated_on>
+    </sys_script_include>
+</record_update>

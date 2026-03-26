@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_ui_page">
+    <sys_ui_page action="INSERT_OR_UPDATE">
+        <category>general</category>
+        <client_script/>
+        <description/>
+        <direct>true</direct>
+        <endpoint>x_alati_snow_intgr_app_privacy_policy.do</endpoint>
+        <html><![CDATA[<j:jelly xmlns:j="jelly:core" xmlns:g="glide">
+  <g:evaluate>
+    var appName = "Alation ServiceNow Integration";
+  </g:evaluate>
+  <style>
+   .policy h1 { margin-bottom: 16px; }
+   .policy h2 { margin-top: 24px; margin-bottom: 8px; }
+   .policy p,
+   .policy ul { margin-top: 8px; }
+  </style>
+
+  <div class="policy">
+    <h1>$[appName] - App Privacy Policy</h1>
+
+    <p>This page describes how this application handles data.</p>
+
+    <h2>Data collected and processed</h2>
+    <ul>
+      <li>Incident identifiers: sys_id, number, correlation_id / externalIncidentId</li>
+      <li>Incident fields: short_description, description, state, priority, impact, urgency, category, subcategory</li>
+      <li>Assignment fields: assigned_to, assignment_group</li>
+      <li>Timestamps and duration fields as configured (e.g., opened/closed times, business duration)</li>
+    </ul>
+
+    <h2>Data transferred outside ServiceNow</h2>
+    <p>
+      When configured by an administrator, the application sends incident change information to an external service
+      endpoint (Alation) over HTTPS for synchronization.
+    </p>
+
+    <h2>How data is used</h2>
+    <p>Used to synchronize incidents between ServiceNow and the external Alation service and to notify changes.</p>
+
+    <h2>Data storage and retention outside ServiceNow</h2>
+    <p>Incident data transmitted by this application may be processed and stored by Alation in cloud infrastructure hosted on Amazon Web Services (AWS), including managed relational databases (Amazon RDS). </p>
+    <p>Data is retained only as required to support the configured integration features. Upon customer request to delete their data, Alation deletes the corresponding stored data from its systems in accordance with its data deletion and retention policies.</p>
+
+    <h2>Security</h2>
+    <ul>
+      <li>HTTPS/TLS for data in transit</li>
+      <li>OAuth 2.0 authentication for API access</li>
+      <li>Signed requests for registration (HMAC) where applicable</li>
+      <li>Secrets are stored in protected ServiceNow configuration properties and restricted to administrators</li>
+    </ul>
+
+	<h2>Alation Privacy policy</h2>
+	<a href="https://www.alation.com/legal/privacy-policy/"
+	target="_blank"
+    rel="noopener noreferrer nofollow"
+	>
+	Partner privacy policy
+	</a>
+    <h2>Contact</h2>
+	<p>Contact for app security issues:&#160;<a href="mailto:security@alation.com">security@alation.com</a></p>
+  </div>
+</j:jelly>
+]]></html>
+        <name>app_privacy_policy</name>
+        <processing_script/>
+        <sys_class_name>sys_ui_page</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-02-09 12:05:37</sys_created_on>
+        <sys_id>9b7a1bcc2fcfb2102bc1102cbfa4e37e</sys_id>
+        <sys_mod_count>11</sys_mod_count>
+        <sys_name>app_privacy_policy</sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sys_ui_page_9b7a1bcc2fcfb2102bc1102cbfa4e37e</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-13 11:49:04</sys_updated_on>
+    </sys_ui_page>
+</record_update>

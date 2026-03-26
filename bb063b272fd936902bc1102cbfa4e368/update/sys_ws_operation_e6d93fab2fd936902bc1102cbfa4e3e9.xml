@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_ws_operation">
+    <sys_ws_operation action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <consumes>application/json,application/xml,text/xml</consumes>
+        <consumes_customized>false</consumes_customized>
+        <default_operation_uri/>
+        <enforce_acl>13c453972feb32505020f54fafa4e3f8</enforce_acl>
+        <http_method>GET</http_method>
+        <name>Get SubCategories</name>
+        <operation_script><![CDATA[(function process(request, response) {
+  var utils = new AlationUtils();
+
+
+  var qs = request.queryParams || {};
+  var catInput = (qs.category || '').toString().trim();
+  if (!catInput) return utils.error(response, 400, 'category is required');
+
+  var qRaw = (qs.q || '').toString();
+  var q = qRaw ? qRaw.trim().toLowerCase() : '';
+  var startAt = parseInt(qs.startAt, 10); if (isNaN(startAt) || startAt < 0) startAt = 0;
+  var maxResults = parseInt(qs.maxResults, 10); if (isNaN(maxResults) || maxResults < 1) maxResults = 25;
+  if (maxResults > 100) maxResults = 100;
+
+  var lang = gs.getSession().getLanguage() || 'en';
+
+  // Resolve category to its *value* (match by exact value or case-insensitive label)
+  var catValue = null, catLabel = null;
+
+  var cat = new GlideRecord('sys_choice');
+  cat.addQuery('name', 'incident');
+  cat.addQuery('element', 'category');
+  cat.addQuery('inactive', false);
+  cat.addQuery('language', lang);
+  cat.orderBy('sequence');
+  cat.orderBy('label');
+  cat.query();
+
+  var catInputLower = catInput.toLowerCase();
+  while (cat.next()) {
+    var cv = String(cat.value || '');
+    var cl = String(cat.label || cv);
+    if (cv === catInput || cl.toLowerCase() === catInputLower) {
+      catValue = cv;
+      catLabel = cl;
+      break;
+    }
+  }
+
+  if (!catValue) {
+    return utils.error(response, 404, 'category not found');
+  }
+
+  // Fetch subcategories where dependent_value == catValue
+  var sc = new GlideRecord('sys_choice');
+  sc.addQuery('name', 'incident');
+  sc.addQuery('element', 'subcategory');
+  sc.addQuery('inactive', false);
+  sc.addQuery('language', lang);
+  sc.addQuery('dependent_value', catValue);
+  sc.orderBy('sequence');
+  sc.orderBy('label');
+  sc.query();
+
+  var results = [];
+  var seen = 0;
+  while (sc.next()) {
+    var value = String(sc.value || '');
+    var label = String(sc.label || value);
+    if (q) {
+      var hay = (label + ' ' + value).toLowerCase();
+      if (hay.indexOf(q) === -1) continue;
+    }
+    if (seen++ < startAt) continue;
+    results.push({ value: value, label: label });
+    if (results.length >= maxResults) break;
+  }
+
+  var nextStartAt = results.length === maxResults ? (startAt + results.length) : null;
+
+  return utils.ok(response, 200, {
+    category: { value: catValue, label: catLabel },
+    startAt: startAt,
+    maxResults: maxResults,
+    nextStartAt: nextStartAt,
+    results: results
+  });
+})(request, response);
+]]></operation_script>
+        <operation_uri>/api/x_alati_snow_intgr/v1/subcategories</operation_uri>
+        <produces>application/json,application/xml,text/xml</produces>
+        <produces_customized>false</produces_customized>
+        <relative_path>/subcategories</relative_path>
+        <request_example/>
+        <requires_acl_authorization>true</requires_acl_authorization>
+        <requires_authentication>true</requires_authentication>
+        <requires_snc_internal_role>true</requires_snc_internal_role>
+        <short_description/>
+        <sys_class_name>sys_ws_operation</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 11:30:32</sys_created_on>
+        <sys_id>e6d93fab2fd936902bc1102cbfa4e3e9</sys_id>
+        <sys_mod_count>3</sys_mod_count>
+        <sys_name>Get SubCategories</sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sys_ws_operation_e6d93fab2fd936902bc1102cbfa4e3e9</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-16 10:37:34</sys_updated_on>
+        <web_service_definition display_value="Alation Incidents API">993973ab2fd936902bc1102cbfa4e33c</web_service_definition>
+        <web_service_version/>
+    </sys_ws_operation>
+</record_update>

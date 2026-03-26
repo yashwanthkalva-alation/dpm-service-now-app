@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_ws_operation">
+    <sys_ws_operation action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <consumes>application/json,application/xml,text/xml</consumes>
+        <consumes_customized>false</consumes_customized>
+        <default_operation_uri/>
+        <enforce_acl>13c453972feb32505020f54fafa4e3f8</enforce_acl>
+        <http_method>GET</http_method>
+        <name>Get Incident</name>
+        <operation_script><![CDATA[(function process(request, response) {
+  var utils = new AlationUtils();
+
+
+
+  var qp     = request.queryParams || {};
+  var sysId  = (qp.sys_id || qp.id || '').toString().trim();
+  var number = (qp.number || '').toString().trim();
+  var extId  = (qp.externalIncidentId || qp.external_id || '').toString().trim();
+
+  if (!sysId && !number && !extId) {
+    var body = utils.readJsonOnce(request) || {};
+    sysId  = (body.sys_id || body.id || '').toString().trim();
+    number = (body.number || '').toString().trim();
+    extId  = (body.externalIncidentId || body.external_id || '').toString().trim();
+  }
+
+  var inc = new GlideRecord('incident');
+  var found = false;
+
+  if (sysId && inc.get(sysId)) {
+    found = true;
+  } else if (number) {
+    inc.addQuery('number', number);
+    inc.setLimit(1); inc.query();
+    if (inc.next()) found = true;
+  } else if (extId) {
+    inc.addQuery('correlation_id', extId);
+    inc.setLimit(1); inc.query();
+    if (inc.next()) found = true;
+  }
+
+  if (!found) return utils.error(response, 404, 'incident not found');
+
+  var businessSeconds = null;
+  try {
+    var dur = inc.business_duration;
+    if (dur && dur.getNumericValue) {
+      businessSeconds = Math.floor(dur.getNumericValue() / 1000);
+    } else {
+      var raw = String(inc.getValue('business_duration') || '');
+      var n = parseInt(raw, 10);
+      businessSeconds = isNaN(n) ? null : n;
+    }
+  } catch (e) {
+    businessSeconds = null;
+  }
+
+  var assignee = null;
+  try {
+    var hasAssignee = String(inc.assigned_to || '') !== '';
+    if (hasAssignee) {
+      var usr = null;
+      var assigneeId = String(inc.getValue('assigned_to') || '');
+      if (assigneeId) {
+        usr = inc.assigned_to.getRefRecord();
+        if (!(usr && usr.isValidRecord && usr.isValidRecord())) {
+          usr = null;
+		}
+      }
+      if (usr && usr.isValidRecord && usr.isValidRecord()) {
+        assignee = {
+          account_id: String(usr.sys_id),
+          display_name: String(usr.name || inc.getDisplayValue('assigned_to') || ''),
+          user_name: String(usr.user_name || ''),
+          email: String(usr.email || '')
+        };
+      } else {
+        assignee = {
+          account_id: String(inc.assigned_to),
+          display_name: String(inc.getDisplayValue('assigned_to') || '')
+        };
+      }
+    }
+  } catch (ignore) {}
+
+  // --- Assignment group object {account_id, display_name} ---
+  var assignmentGroup = null;
+  try {
+    var hasGrp = String(inc.assignment_group || '') !== '';
+    if (hasGrp) {
+      var grp = null;
+      var grpId = String(inc.getValue('assignment_group') || '');
+      if (grpId) {
+        grp = inc.assignment_group.getRefRecord();
+        if (!(grp && grp.isValidRecord && grp.isValidRecord())) {
+          grp = null;
+        }
+      }
+      if (grp && grp.isValidRecord && grp.isValidRecord()) {
+        assignmentGroup = {
+          account_id: String(grp.sys_id),
+          display_name: String(grp.name || inc.getDisplayValue('assignment_group') || '')
+        };
+      } else {
+        assignmentGroup = {
+          account_id: String(inc.assignment_group),
+          display_name: String(inc.getDisplayValue('assignment_group') || '')
+        };
+      }
+    }
+  } catch (ignore) {}
+
+  var priorityObj = {
+      value: String(inc.getValue('priority')),
+      display_value: inc.getDisplayValue('priority')
+    };
+
+  var payload = {
+    sys_id: String(inc.sys_id),
+    number: String(inc.number),
+
+    external_incident_id: String(inc.correlation_id || ''),
+
+    short_description: String(inc.short_description || ''),
+    description: String(inc.description || ''),
+
+    impact: String(inc.impact),
+    impact_label: inc.getDisplayValue('impact'),
+    urgency: String(inc.urgency),
+    urgency_label: inc.getDisplayValue('urgency'),
+
+    category: String(inc.category || ''),
+    category_label: inc.getDisplayValue('category'),
+    subcategory: String(inc.subcategory || ''),
+    subcategory_label: inc.getDisplayValue('subcategory'),
+
+    priority: priorityObj,
+
+    state: String(inc.state),
+    state_label: inc.getDisplayValue('state'),
+
+    opened_at: String(inc.opened_at || ''),
+    closed_at: String(inc.closed_at || ''),
+    sys_created_on: String(inc.sys_created_on || ''),
+    sys_updated_on: String(inc.sys_updated_on || ''),
+
+    business_elapsed_seconds: businessSeconds,
+    business_elapsed_display: inc.getDisplayValue('business_duration'),
+
+    assignee: assignee,
+    assignment_group: assignmentGroup,
+
+    url: utils.incidentUrl(String(inc.sys_id))
+  };
+  return utils.ok(response, 200, payload);
+
+})(request, response);
+]]></operation_script>
+        <operation_uri>/api/x_alati_snow_intgr/v1/incident</operation_uri>
+        <produces>application/json,application/xml,text/xml</produces>
+        <produces_customized>false</produces_customized>
+        <relative_path>/incident</relative_path>
+        <request_example/>
+        <requires_acl_authorization>true</requires_acl_authorization>
+        <requires_authentication>true</requires_authentication>
+        <requires_snc_internal_role>true</requires_snc_internal_role>
+        <short_description/>
+        <sys_class_name>sys_ws_operation</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 11:33:13</sys_created_on>
+        <sys_id>4f7a7feb2fd936902bc1102cbfa4e34d</sys_id>
+        <sys_mod_count>9</sys_mod_count>
+        <sys_name>Get Incident</sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sys_ws_operation_4f7a7feb2fd936902bc1102cbfa4e34d</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-16 10:37:20</sys_updated_on>
+        <web_service_definition display_value="Alation Incidents API">993973ab2fd936902bc1102cbfa4e33c</web_service_definition>
+        <web_service_version/>
+    </sys_ws_operation>
+</record_update>

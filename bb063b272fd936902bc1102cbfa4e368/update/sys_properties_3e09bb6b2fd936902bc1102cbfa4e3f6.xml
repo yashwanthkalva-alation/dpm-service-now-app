@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_properties">
+    <sys_properties action="INSERT_OR_UPDATE">
+        <choices/>
+        <description/>
+        <ignore_cache>true</ignore_cache>
+        <is_private>false</is_private>
+        <name>x_alati_snow_intgr.hmac_secret</name>
+        <read_roles/>
+        <suffix>hmac_secret</suffix>
+        <sys_class_name>sys_properties</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 11:26:37</sys_created_on>
+        <sys_id>3e09bb6b2fd936902bc1102cbfa4e3f6</sys_id>
+        <sys_mod_count>8</sys_mod_count>
+        <sys_name>x_alati_snow_intgr.hmac_secret</sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sys_properties_3e09bb6b2fd936902bc1102cbfa4e3f6</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-01-05 10:05:07</sys_updated_on>
+        <type>password2</type>
+        <value>{{dflt-gpaes}}GOREqcgqg3ta1lN+lhaApU9AZeEVe4AyNBMrcDEEWyjbCyzYvxgFfpqmMDTdrdpNpu8xhuAEgjiv&#13;
+Ob6oy3SUwsO4aAAt3hOVXVi7VZyoyrU=</value>
+        <write_roles/>
+    </sys_properties>
+    <sys_translated_text action="delete_multiple" query="documentkey=3e09bb6b2fd936902bc1102cbfa4e3f6"/>
+</record_update>

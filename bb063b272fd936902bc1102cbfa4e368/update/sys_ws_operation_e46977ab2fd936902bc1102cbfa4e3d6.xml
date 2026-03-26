@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_ws_operation">
+    <sys_ws_operation action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <consumes>application/json,application/xml,text/xml</consumes>
+        <consumes_customized>false</consumes_customized>
+        <default_operation_uri/>
+        <enforce_acl>13c453972feb32505020f54fafa4e3f8</enforce_acl>
+        <http_method>POST</http_method>
+        <name>Create Incident </name>
+        <operation_script><![CDATA[(function process(request, response) {
+  var utils = new AlationUtils();
+
+  // Read raw + parsed body (raw is needed for traceability/audit)
+  var body    = utils.readJsonOnce(request) || {};
+
+  var ext     = String(body.external_incident_id || '').trim();
+  var summary = String(body.summary || body.short_description || '').trim();
+  if (!ext || !summary) return utils.error(response, 400, 'missing required fields');
+
+  var corr = ext;
+
+  var integrationUserSysId = '';
+  try {
+    if (utils.getOrCreateIntegrationUserSysId) {
+      integrationUserSysId = String(utils.getOrCreateIntegrationUserSysId() || '').trim();
+    }
+  } catch (eIU) {
+    // Don't fail incident creation for this; log and continue (caller may remain Guest)
+    gs.warn('[x_alati_snow_intgr] failed to ensure integration user: ' + eIU);
+    integrationUserSysId = '';
+  }
+
+  // -----------------------------
+  // 1) Stage the inbound request
+  // -----------------------------
+  var requestId = gs.generateGUID();
+
+  var stageRec = new GlideRecord('x_alati_snow_intgr_alation_inbound_incident_staging');
+  stageRec.initialize();
+
+  stageRec.u_external_incident_id = corr; // store what will become correlation_id
+  stageRec.u_summary              = summary;
+  stageRec.u_description          = (body.description != null) ? String(body.description) : '';
+  stageRec.u_state                = String(body.state || '');
+
+  stageRec.u_priority             = String(body.priorityValue || body.priority || body.priorityName || '');
+  stageRec.u_impact               = String(body.impactValue  || body.impact  || body.impactName  || '');
+  stageRec.u_urgency              = String(body.urgencyValue || body.urgency || body.urgencyName || '');
+
+  stageRec.u_category             = String(body.categoryValue || body.category || body.categoryName || '');
+  stageRec.u_subcategory          = String(body.subcategoryValue || body.subcategory || body.subcategoryName || '');
+
+  stageRec.u_assignment_group     = String(body.assignment_group || '');
+  stageRec.u_assigned_to          = String(body.assigned_to || body.assignee_id || '');
+
+  stageRec.u_raw_payload          = String(body);
+  stageRec.u_request_id           = requestId;
+  stageRec.u_received_at          = new GlideDateTime();
+  stageRec.u_source               = 'alation';
+  stageRec.u_processing_status    = 'pending';
+  stageRec.u_processing_error     = '';
+
+  var stageId = stageRec.insert();
+  if (!stageId) return utils.error(response, 500, 'failed to stage request');
+
+  // -----------------------------------------
+  // 2) Create sys_import_set and link the row
+  // -----------------------------------------
+  var importSetGr = new GlideRecord('sys_import_set');
+  importSetGr.initialize();
+  importSetGr.short_description = 'Alation inbound incident request_id=' + requestId;
+  importSetGr.table_name = 'x_alati_snow_intgr_alation_inbound_incident_staging';
+  var importSetId = importSetGr.insert();
+  if (!importSetId) {
+    stageRec.u_processing_status = 'error';
+    stageRec.u_processing_error  = 'failed to create sys_import_set';
+    stageRec.update();
+    return utils.error(response, 500, 'failed to create import set');
+  }
+
+  // Reload importSet GR for transformer
+  if (!importSetGr.get(importSetId)) {
+    stageRec.u_processing_status = 'error';
+    stageRec.u_processing_error  = 'sys_import_set created but not retrievable';
+    stageRec.update();
+    return utils.error(response, 500, 'import set created but not retrievable');
+  }
+
+  // Link the staged row to this import set (import set tables typically have sys_import_set)
+  try {
+    stageRec.sys_import_set = importSetId;
+    stageRec.update();
+  } catch (eLink) {
+    // If your import set table uses a different linkage field, update it here
+    stageRec.u_processing_status = 'error';
+    stageRec.u_processing_error  = 'failed linking staged row to import set: ' + eLink;
+    stageRec.update();
+    return utils.error(response, 500, 'failed linking staged row to import set');
+  }
+
+  // ---------------------------------------------
+  // 3) Run the transform synchronously (Yokohama)
+  // ---------------------------------------------
+  var mapSysId = String(gs.getProperty('x_alati_snow_intgr.transform_map_incident_sys_id') || '').trim();
+  if (!mapSysId) {
+    stageRec.u_processing_status = 'error';
+    stageRec.u_processing_error  = 'transform map sys_id property not configured';
+    stageRec.update();
+    return utils.error(response, 500, 'transform map not configured');
+  }
+
+  try {
+    var transformer = new GlideImportSetTransformer();
+    transformer.setMapID(mapSysId);
+    transformer.setSyncImport(true);
+
+    transformer.transformAllMaps(importSetGr);
+
+    stageRec.u_processing_status = 'processed';
+    stageRec.u_processing_error  = '';
+    stageRec.update();
+
+  } catch (eTx) {
+    stageRec.u_processing_status = 'error';
+    stageRec.u_processing_error  = String(eTx);
+    stageRec.update();
+    return utils.error(response, 500, 'transform failed: ' + eTx);
+  }
+
+  // ------------------------------------------------
+  // 4) Fetch the incident created/updated by coalesce
+  // ------------------------------------------------
+  var out = new GlideRecord('incident');
+  out.addQuery('correlation_id', corr);
+  out.setLimit(1);
+  out.query();
+  if (!out.next()) {
+    return utils.error(response, 500, 'incident not found after transform');
+  }
+
+  if (integrationUserSysId) {
+    try {
+      var iu = new GlideRecord('sys_user');
+      if (iu.get(integrationUserSysId) && String(iu.active) === 'true') {
+        // Only set caller_id if empty or currently Guest
+        var curCaller = String(out.getValue('caller_id') || '').trim();
+        var guestSysId = '';
+        try {
+          var guest = new GlideRecord('sys_user');
+          guest.addQuery('user_name', 'guest');
+          guest.setLimit(1);
+          guest.query();
+          if (guest.next()) guestSysId = String(guest.getUniqueValue());
+        } catch (ignoreGuest) {}
+
+        if (!curCaller || (guestSysId && curCaller === guestSysId)) {
+          out.setValue('caller_id', iu.getUniqueValue());
+          out.update();
+        }
+      }
+    } catch (eSetCaller) {
+      gs.warn('[x_alati_snow_intgr] failed setting caller_id: ' + eSetCaller);
+    }
+  }
+
+  // (Optional) include request_id/staging in response for traceability
+  var resp = buildResponse(out, false, utils);
+  resp.request_id = requestId;
+  resp.staging_sys_id = String(stageId);
+
+  return utils.ok(response, 201, resp);
+
+  // ---------- helpers ----------
+  function buildResponse(rec, existed, utilsRef) {
+	var businessSeconds = null;
+	try {
+		var dur = rec.business_duration;
+		if (dur && dur.getNumericValue) {
+		businessSeconds = Math.floor(dur.getNumericValue() / 1000);
+		} else {
+		var raw = String(rec.getValue('business_duration') || '');
+		var n = parseInt(raw, 10);
+		businessSeconds = isNaN(n) ? null : n;
+		}
+	} catch (e) {
+		businessSeconds = null;
+	}
+
+	// --- assignee object ---
+	var assigneeObj = null;
+	var assigneeId  = String(rec.getValue('assigned_to') || '').trim();
+	if (assigneeId) {
+		var u = new GlideRecord('sys_user');
+		if (u.get(assigneeId)) { // ✅ get() inside if()
+		assigneeObj = {
+			account_id:   String(u.getUniqueValue()),
+			display_name: String(u.getValue('name') || rec.getDisplayValue('assigned_to') || ''),
+			user_name:    String(u.getValue('user_name') || ''),
+			email:        String(u.getValue('email') || '')
+		};
+		} else {
+		// fallback (should be rare)
+		assigneeObj = {
+			account_id:   String(assigneeId),
+			display_name: String(rec.getDisplayValue('assigned_to') || '')
+		};
+		}
+	}
+
+	// --- assignment group object ---
+	var groupObj = null;
+	var groupId  = String(rec.getValue('assignment_group') || '').trim();
+	if (groupId) {
+		var g = new GlideRecord('sys_user_group');
+		if (g.get(groupId)) { // ✅ get() inside if()
+		groupObj = {
+			account_id:   String(g.getUniqueValue()),
+			name:         String(g.getValue('name') || rec.getDisplayValue('assignment_group') || ''),
+			display_name: String(g.getValue('name') || rec.getDisplayValue('assignment_group') || '')
+		};
+		} else {
+		groupObj = {
+			account_id:   String(groupId),
+			name:         String(rec.getDisplayValue('assignment_group') || ''),
+			display_name: String(rec.getDisplayValue('assignment_group') || '')
+		};
+		}
+	}
+
+    // --- priority object ---
+	var priorityObj = {
+		value: String(rec.getValue('priority') || ''),
+		display_value: String(rec.getDisplayValue('priority') || '')
+	};
+    return {
+		sys_id:  String(rec.getUniqueValue()),
+		number:  String(rec.getValue('number') || ''),
+		existed: !!existed,
+
+		external_incident_id: String(rec.getValue('correlation_id') || ''),
+
+		short_description: String(rec.getValue('short_description') || ''),
+		description:       String(rec.getValue('description') || ''),
+
+		impact:       String(rec.getValue('impact') || ''),
+		impact_label: String(rec.getDisplayValue('impact') || ''),
+
+		urgency:       String(rec.getValue('urgency') || ''),
+		urgency_label: String(rec.getDisplayValue('urgency') || ''),
+
+		priority: priorityObj,
+
+		state:       String(rec.getValue('state') || ''),
+		state_label: String(rec.getDisplayValue('state') || ''),
+
+		category:       String(rec.getValue('category') || ''),
+		category_label: String(rec.getDisplayValue('category') || ''),
+
+		subcategory:       String(rec.getValue('subcategory') || ''),
+		subcategory_label: String(rec.getDisplayValue('subcategory') || ''),
+
+		opened_at:      String(rec.getValue('opened_at') || ''),
+		closed_at:      String(rec.getValue('closed_at') || ''),
+		sys_created_on: String(rec.getValue('sys_created_on') || ''),
+		sys_updated_on: String(rec.getValue('sys_updated_on') || ''),
+
+		business_elapsed_seconds: businessSeconds,
+		business_elapsed_display: String(rec.getDisplayValue('business_duration') || ''),
+
+		assignee: assigneeObj,
+		assignment_group: groupObj,
+
+		url: utilsRef.incidentUrl(String(rec.getUniqueValue()))
+    };
+  }
+})(request, response);
+]]></operation_script>
+        <operation_uri>/api/x_alati_snow_intgr/v1/incident</operation_uri>
+        <produces>application/json,application/xml,text/xml</produces>
+        <produces_customized>false</produces_customized>
+        <relative_path>/incident</relative_path>
+        <request_example/>
+        <requires_acl_authorization>true</requires_acl_authorization>
+        <requires_authentication>true</requires_authentication>
+        <requires_snc_internal_role>true</requires_snc_internal_role>
+        <short_description/>
+        <sys_class_name>sys_ws_operation</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 11:28:58</sys_created_on>
+        <sys_id>e46977ab2fd936902bc1102cbfa4e3d6</sys_id>
+        <sys_mod_count>17</sys_mod_count>
+        <sys_name>Create Incident </sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sys_ws_operation_e46977ab2fd936902bc1102cbfa4e3d6</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-16 10:36:18</sys_updated_on>
+        <web_service_definition display_value="Alation Incidents API">993973ab2fd936902bc1102cbfa4e33c</web_service_definition>
+        <web_service_version/>
+    </sys_ws_operation>
+</record_update>

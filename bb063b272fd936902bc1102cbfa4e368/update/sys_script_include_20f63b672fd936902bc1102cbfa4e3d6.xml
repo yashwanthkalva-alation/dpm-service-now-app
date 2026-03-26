@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_alati_snow_intgr.AlationHmacJS</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description/>
+        <mobile_callable>false</mobile_callable>
+        <name>AlationHmacJS</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[// Name: AlationHmacJS
+// Scope: x_alati_snow_intgr
+// Pure-JS HMAC-SHA256 (Base64 output). No cross-scope APIs, zero-admin.
+var AlationHmacJS = Class.create();
+AlationHmacJS.prototype = {
+  initialize: function () {},
+
+  _prop: function () { return 'x_alati_snow_intgr.hmac_secret'; },
+
+  // Create once if missing (64 hex chars via 2 GUIDs). No GlideSecureRandomUtil.
+  _ensureSecret: function () {
+    var keyProp = this._prop();
+    var have = (gs.getProperty(keyProp) || '').trim();
+    if (have) return have;
+    var secret = (gs.generateGUID() + gs.generateGUID()).replace(/-/g, ''); // 64 hex chars
+    gs.setProperty(keyProp, secret);
+    return secret;
+  },
+
+  // ---------- UTF-8 + Base64 helpers (pure JS) ----------
+  _utf8Bytes: function (s) {
+    s = String(s);
+    var out = [], i = 0, c;
+    for (i = 0; i < s.length; i++) {
+      c = s.charCodeAt(i);
+      if (c < 0x80) out.push(c);
+      else if (c < 0x800) {
+        out.push(0xC0 | (c >> 6), 0x80 | (c & 0x3F));
+      } else if (c >= 0xD800 && c <= 0xDBFF) {
+        // surrogate pair
+        var c2 = s.charCodeAt(++i);
+        var u = 0x10000 + ((c & 0x3FF) << 10 | (c2 & 0x3FF));
+        out.push(
+          0xF0 | (u >> 18),
+          0x80 | ((u >> 12) & 0x3F),
+          0x80 | ((u >> 6) & 0x3F),
+          0x80 | (u & 0x3F)
+        );
+      } else {
+        out.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+      }
+    }
+    return out;
+  },
+
+  _bytesToBase64: function (bytes) {
+    var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    var out = '', i, b0, b1, b2, triplet, pad;
+    for (i = 0; i < bytes.length; i += 3) {
+      b0 = bytes[i] & 0xFF;
+      b1 = (i + 1 < bytes.length) ? (bytes[i + 1] & 0xFF) : 0;
+      b2 = (i + 2 < bytes.length) ? (bytes[i + 2] & 0xFF) : 0;
+      triplet = (b0 << 16) | (b1 << 8) | b2;
+      pad = (i + 1 < bytes.length ? (i + 2 < bytes.length ? 0 : 1) : 2);
+      out += chars.charAt((triplet >> 18) & 63);
+      out += chars.charAt((triplet >> 12) & 63);
+      out += (pad >= 2) ? '=' : chars.charAt((triplet >> 6) & 63);
+      out += (pad >= 1) ? '=' : chars.charAt(triplet & 63);
+    }
+    return out;
+  },
+
+  // ---------- SHA-256 (pure JS, 32-bit ops) ----------
+  _rotr: function (x, n) { return (x >>> n) | (x << (32 - n)); },
+  _shr:  function (x, n) { return x >>> n; },
+  _ch:   function (x, y, z) { return (x & y) ^ (~x & z); },
+  _maj:  function (x, y, z) { return (x & y) ^ (x & z) ^ (y & z); },
+  _bsig0:function (x) { return this._rotr(x, 2) ^ this._rotr(x, 13) ^ this._rotr(x, 22); },
+  _bsig1:function (x) { return this._rotr(x, 6) ^ this._rotr(x, 11) ^ this._rotr(x, 25); },
+  _ssig0:function (x) { return this._rotr(x, 7) ^ this._rotr(x, 18) ^ this._shr(x, 3); },
+  _ssig1:function (x) { return this._rotr(x, 17) ^ this._rotr(x, 19) ^ this._shr(x, 10); },
+
+  _sha256: function (msgBytes) {
+    var i, j;
+    var H = [
+      0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+      0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    ];
+    var K = [
+      0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+      0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+      0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+      0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+      0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+      0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+      0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+      0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+    ];
+
+    // pad
+    var l = msgBytes.length;
+    var withOne = l + 1;
+    var k = (withOne % 64 <= 56) ? (56 - (withOne % 64)) : (64 + 56 - (withOne % 64));
+    var paddedLen = l + 1 + k + 8;
+    var bytes = new Array(paddedLen);
+    for (i = 0; i < l; i++) bytes[i] = msgBytes[i];
+    bytes[l] = 0x80;
+    for (i = l + 1; i < l + 1 + k; i++) bytes[i] = 0;
+    var bitLenHi = Math.floor((l >>> 29) & 0x07);
+    var bitLenLo = (l << 3) >>> 0;
+    for (i = 0; i < 4; i++) bytes[paddedLen - 8 + i] = 0; // we ignore >32-bit lengths
+    bytes[paddedLen - 4] = (bitLenLo >>> 24) & 0xFF;
+    bytes[paddedLen - 3] = (bitLenLo >>> 16) & 0xFF;
+    bytes[paddedLen - 2] = (bitLenLo >>> 8) & 0xFF;
+    bytes[paddedLen - 1] = bitLenLo & 0xFF;
+
+    // process 512-bit chunks
+    var w = new Array(64);
+    for (i = 0; i < paddedLen; i += 64) {
+      for (j = 0; j < 16; j++) {
+        var idx = i + j*4;
+        w[j] = ((bytes[idx] << 24) | (bytes[idx+1] << 16) | (bytes[idx+2] << 8) | (bytes[idx+3])) >>> 0;
+      }
+      for (j = 16; j < 64; j++) {
+        w[j] = (this._ssig1(w[j-2]) + w[j-7] + this._ssig0(w[j-15]) + w[j-16]) >>> 0;
+      }
+
+      var a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7], t1, t2;
+
+      for (j = 0; j < 64; j++) {
+        t1 = (h + this._bsig1(e) + this._ch(e,f,g) + K[j] + w[j]) >>> 0;
+        t2 = (this._bsig0(a) + this._maj(a,b,c)) >>> 0;
+        h = g; g = f; f = e; e = (d + t1) >>> 0;
+        d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+      }
+
+      H[0] = (H[0] + a) >>> 0;
+      H[1] = (H[1] + b) >>> 0;
+      H[2] = (H[2] + c) >>> 0;
+      H[3] = (H[3] + d) >>> 0;
+      H[4] = (H[4] + e) >>> 0;
+      H[5] = (H[5] + f) >>> 0;
+      H[6] = (H[6] + g) >>> 0;
+      H[7] = (H[7] + h) >>> 0;
+    }
+
+    // produce 32-byte array
+    var out = [];
+    for (i = 0; i < 8; i++) {
+      out.push((H[i] >>> 24) & 0xFF, (H[i] >>> 16) & 0xFF, (H[i] >>> 8) & 0xFF, H[i] & 0xFF);
+    }
+    return out;
+  },
+
+  _hmacSha256: function (keyBytes, msgBytes) {
+    var blockSize = 64; // bytes
+    // shorten long keys
+    if (keyBytes.length > blockSize) keyBytes = this._sha256(keyBytes);
+    // pad to blockSize
+    var i, k = new Array(blockSize);
+    for (i = 0; i < blockSize; i++) k[i] = (i < keyBytes.length) ? keyBytes[i] : 0;
+
+    var ipad = new Array(blockSize), opad = new Array(blockSize);
+    for (i = 0; i < blockSize; i++) {
+      ipad[i] = k[i] ^ 0x36;
+      opad[i] = k[i] ^ 0x5c;
+    }
+
+    var inner = this._sha256(ipad.concat(msgBytes));
+    var outer = this._sha256(opad.concat(inner));
+    return outer; // bytes
+  },
+
+  // Sign: Base64(HMAC_SHA256(secretBytes, ts + "\n" + body))
+  sign: function (ts, bodyStr) {
+    var secret = this._ensureSecret();            // treat as raw text bytes (NOT hex-decoded)
+    var keyBytes = this._utf8Bytes(secret);
+    var msgBytes = this._utf8Bytes(String(ts) + '\n' + String(bodyStr || ''));
+    var mac = this._hmacSha256(keyBytes, msgBytes);
+    return this._bytesToBase64(mac);
+  },
+
+  // Build headers your Go service will verify
+  buildSigHeaders: function (tenantId, bodyStr) {
+    var ts = String(new GlideDateTime().getNumericValue()); // ms since epoch
+    var sig = this.sign(ts, bodyStr);
+    return {
+      'x-tenant-id': String(tenantId || ''),
+      'x-timestamp': ts,
+      'x-signature': sig
+    };
+  },
+
+  type: 'AlationHmacJS'
+};
+]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 11:18:45</sys_created_on>
+        <sys_id>20f63b672fd936902bc1102cbfa4e3d6</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>AlationHmacJS</sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sys_script_include_20f63b672fd936902bc1102cbfa4e3d6</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-25 11:18:45</sys_updated_on>
+    </sys_script_include>
+</record_update>

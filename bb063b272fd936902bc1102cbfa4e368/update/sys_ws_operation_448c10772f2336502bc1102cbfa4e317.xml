@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_ws_operation">
+    <sys_ws_operation action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <consumes>application/json,application/xml,text/xml</consumes>
+        <consumes_customized>false</consumes_customized>
+        <default_operation_uri/>
+        <enforce_acl>13c453972feb32505020f54fafa4e3f8</enforce_acl>
+        <http_method>GET</http_method>
+        <name>Get Assignment Groups</name>
+        <operation_script><![CDATA[  (function process(request, response) {
+    var utils = new AlationUtils();
+
+    var q        = request.queryParams || {};
+    var query    = (q.query || '').toString().trim();
+    var start    = Math.max(0, parseInt(q.start || q.start_at || '0', 10) || 0);
+    var max_results = Math.min(50, Math.max(1, parseInt(q.limit || q.max_results || '25', 10) || 25));
+
+    var gr = new GlideRecord('sys_user_group');
+    if (query) {
+      var or = gr.addQuery('name', 'CONTAINS', query);
+      or.addOrCondition('description', 'CONTAINS', query);
+    }
+    gr.addQuery('active', true);
+    gr.orderBy('name');
+    gr.query();
+
+    var results = [];
+    var skipped = 0;
+    var returned = 0;
+    var more = false;
+
+    while (gr.next()) {
+      if (skipped < start) { skipped++; continue; }
+      if (returned >= max_results) { more = true; break; }
+
+      results.push({
+        account_id: String(gr.sys_id),
+        name: String(gr.name || ''),
+        display_name: String(gr.getDisplayValue('name') || ''),
+        description: String(gr.description || '')
+      });
+      returned++;
+    }
+
+    var nextStart = more ? (start + returned) : null;
+
+    return utils.ok(response, 200, {
+      results: results,
+      startAt: start,
+      maxResults: max_results,
+      nextStartAt: nextStart
+    });
+  })(request, response);]]></operation_script>
+        <operation_uri>/api/x_alati_snow_intgr/v1/assignment-groups</operation_uri>
+        <produces>application/json,application/xml,text/xml</produces>
+        <produces_customized>false</produces_customized>
+        <relative_path>/assignment-groups</relative_path>
+        <request_example/>
+        <requires_acl_authorization>true</requires_acl_authorization>
+        <requires_authentication>true</requires_authentication>
+        <requires_snc_internal_role>true</requires_snc_internal_role>
+        <short_description/>
+        <sys_class_name>sys_ws_operation</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-03-17 10:23:29</sys_created_on>
+        <sys_id>448c10772f2336502bc1102cbfa4e317</sys_id>
+        <sys_mod_count>4</sys_mod_count>
+        <sys_name>Get Assignment Groups</sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sys_ws_operation_448c10772f2336502bc1102cbfa4e317</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-17 14:40:18</sys_updated_on>
+        <web_service_definition display_value="Alation Incidents API">993973ab2fd936902bc1102cbfa4e33c</web_service_definition>
+        <web_service_version/>
+    </sys_ws_operation>
+</record_update>

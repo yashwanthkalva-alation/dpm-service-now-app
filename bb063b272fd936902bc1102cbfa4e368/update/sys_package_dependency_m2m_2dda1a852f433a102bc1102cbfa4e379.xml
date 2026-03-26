@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_package_dependency_m2m">
+    <sys_package_dependency_m2m action="INSERT_OR_UPDATE">
+        <dependency display_value="System Import Sets" source="com.glide.system_import_set">1c7503f12f2032102bc1102cbfa4e396</dependency>
+        <min_version>1.0.0</min_version>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-02-12 09:59:55</sys_created_on>
+        <sys_id>2dda1a852f433a102bc1102cbfa4e379</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-02-12 09:59:55</sys_updated_on>
+    </sys_package_dependency_m2m>
+</record_update>

@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_alati_snow_intgr.AlationUtils</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description/>
+        <mobile_callable>false</mobile_callable>
+        <name>AlationUtils</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var AlationUtils = Class.create();
+AlationUtils.prototype = {
+  initialize: function () {},
+
+  isValidAlationHost: function(host) {
+    if (!host) return false;
+    var h = String(host).replace(/^https?:\/\//i, '').replace(/\/+$/,'');
+	var re = new RegExp('^(([a-z0-9-]+\\.)+alationcloud\\.com)$', 'i');
+    return re.test(h);
+  },
+
+  normalizeHost: function(host) {
+    if (!host) return "";
+    return String(host).replace(/^https?:\/\//i, "").replace(/\/+$/g, "");
+  },
+
+  servletBase: function() {
+    var base = gs.getProperty("glide.servlet.uri") || "";
+    return base.replace(/\/+$/,"") + "/";
+  },
+
+  apiBase: function() { return this.servletBase() + "api/x_alati_snow_intgr/v1"; },
+
+  _apiKeyProp: function() { return 'x_alati_snow_intgr.api_key'; },
+
+  _base64Url: function (bytes) {
+    var b64 = GlideStringUtil.base64Encode(bytes);
+    return String(b64).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  },
+
+  _integrationUserName: function () {
+	return 'alation_integration'; // fixed username customer must use
+	},
+
+  _oauthRegistryName: function () {
+	return 'Alation Integration OAuth'; // fixed Application Registry Name
+	},
+
+  _oauthClientSecretProp: function () {
+	return 'x_alati_snow_intgr.oauth_client_secret'; // password2 sys_property recommended
+	},
+
+  _integrationPasswordProp: function () {
+	return 'x_alati_snow_intgr.integration_user_password'; // password2 sys_property recommended
+	},
+
+  _randomApiKey: function () {
+	try {
+		if (typeof GlideSecureRandomUtil !== 'undefined' &&
+			GlideSecureRandomUtil.getSecureRandomString) {
+		return String(GlideSecureRandomUtil.getSecureRandomString(48));
+		}
+	} catch (ignore) {}
+
+	var s = (gs.generateGUID() + gs.generateGUID() + gs.generateGUID())
+				.replace(/-/g, '') + new GlideDateTime().getNumericValue();
+	return s;
+  },
+
+  getOrCreateApiKey: function () {
+	var prop = this._apiKeyProp();
+	var v = (gs.getProperty(prop) || '').trim();
+	if (v) return v;
+
+	var fresh = this._randomApiKey();
+
+	gs.setProperty(prop, fresh);
+
+	var persisted = (gs.getProperty(prop) || '').trim();
+	return persisted || fresh;
+  },
+
+  rotateApiKey: function () {
+	var fresh = this._randomApiKey();
+	gs.setProperty(this._apiKeyProp(), fresh);
+
+	var persisted = (gs.getProperty(this._apiKeyProp()) || '').trim();
+	return persisted || fresh;
+  },
+
+  /* ---------- HTTP helpers ---------- */
+  ok: function (response, status, payload) {
+    response.setStatus(status || 200);
+    response.setContentType('application/json');
+    response.getStreamWriter().writeString(JSON.stringify(payload || {}));
+  },
+  error: function (response, status, msg) {
+    response.setStatus(status || 400);
+    response.setContentType('application/json');
+    response.getStreamWriter().writeString(JSON.stringify({ error: msg || 'error' }));
+  },
+
+  /* ---------- Safe body readers (Yokohama) ---------- */
+  readJsonOnce: function (request) {
+    try {
+      if (request.body && typeof request.body.data === 'object' && request.body.data)
+        return request.body.data;
+    } catch (ignore) {}
+    var raw = this.readRawBody(request);
+    if (!raw) return {};
+    try { return JSON.parse(raw); } catch (e) { return {}; }
+  },
+
+  readRawBody: function (request) {
+    try {
+      if (request.body && typeof request.body.dataString === 'string' && request.body.dataString.length)
+        return String(request.body.dataString);
+    } catch (ignore) {}
+    try {
+      var ds = request.body && request.body.dataStream;
+      if (ds) {
+        var reader = new GlideTextReader(ds);
+        var out = '', line;
+        while ((line = reader.readLine()) !== null) out += line + '\n';
+        if (out.endsWith('\n')) out = out.slice(0, -1);
+        return out;
+      }
+    } catch (ignore2) {}
+    return '';
+  },
+
+  /* ---------- Field helpers ---------- */
+  resolvePriorityValue: function (input) {
+    if (!input) return null;
+    var s = String(input).trim();
+    if (/^[1-5]$/.test(s)) return s;
+    var c = new GlideRecord('sys_choice');
+    c.addQuery('name', 'incident');
+    c.addQuery('element', 'priority');
+    c.addQuery('inactive', false);
+    c.query();
+    while (c.next()) {
+      var label = String(c.label || '');
+      if (label.toLowerCase() === s.toLowerCase()) return String(c.value || '');
+    }
+    return null;
+  },
+
+  resolveStateValue: function (input) {
+    if (!input) return null;
+    var s = String(input).trim();
+    if (/^\d+$/.test(s)) return s;
+    var c = new GlideRecord('sys_choice');
+    c.addQuery('name', 'incident');
+    c.addQuery('element', 'state');
+    c.addQuery('inactive', false);
+    c.query();
+    while (c.next()) {
+      var label = String(c.label || '');
+      if (label.toLowerCase() === s.toLowerCase()) return String(c.value || '');
+    }
+    return null;
+  },
+
+  resolveCategoryValue: function (input) {
+	if (!input) return null;
+	var s = String(input).trim();
+	var sLower = s.toLowerCase();
+
+	var gr = new GlideRecord('sys_choice');
+	gr.addQuery('name', 'incident');
+	gr.addQuery('element', 'category');
+	gr.addQuery('inactive', false);
+	gr.query();
+
+	while (gr.next()) {
+		var val = String(gr.value || '');
+		var lab = String(gr.label || '');
+		if (val === s || lab.toLowerCase() === sLower) return val;
+	}
+	return null;
+	},
+
+  resolveSubcategoryValue: function (categoryValueOrLabel, subInput) {
+	if (!subInput) return null;
+
+	var catVal = '';
+	if (categoryValueOrLabel) {
+		catVal = this.resolveCategoryValue(categoryValueOrLabel) || String(categoryValueOrLabel);
+	}
+
+	var s = String(subInput).trim();
+	var sLower = s.toLowerCase();
+
+	var gr = new GlideRecord('sys_choice');
+	gr.addQuery('name', 'incident');
+	gr.addQuery('element', 'subcategory');
+	gr.addQuery('inactive', false);
+	if (catVal) gr.addQuery('dependent_value', catVal);
+	gr.query();
+
+	while (gr.next()) {
+		var val = String(gr.value || '');
+		var lab = String(gr.label || '');
+		if (val === s || lab.toLowerCase() === sLower) return val;
+	}
+	return null;
+	},
+
+
+  sanitizeIncidentFields: function (obj) {
+    var RESERVED = {
+      number:1, sys_id:1, sys_created_on:1, sys_created_by:1,
+      sys_updated_on:1, sys_updated_by:1,
+      short_description:1, description:1, comments:1, work_notes:1,
+      priority:1, state:1, assigned_to:1, assignment_group:1,
+      correlation_id:1
+    };
+    var out = {};
+    if (!obj || typeof obj !== 'object') return out;
+    for (var k in obj) if (!RESERVED[k]) out[k] = obj[k];
+    return out;
+  },
+
+  incidentUrl: function (sysId) {
+    var base = (gs.getProperty('glide.servlet.uri') || '').replace(/\/+$/,'');
+    return sysId ? (base + '/nav_to.do?uri=incident.do?sys_id=' + sysId) : null;
+  },
+
+  listPriorityNames: function () {
+    var out = [];
+    var c = new GlideRecord('sys_choice');
+    c.addQuery('name', 'incident');
+    c.addQuery('element', 'priority');
+    c.addQuery('inactive', false);
+    c.orderBy('sequence');
+    c.query();
+    while (c.next()) out.push(String(c.label || c.value || ''));
+    return out;
+  },
+
+listUrgencyChoices: function () {
+  var out = [];
+  var c = new GlideRecord("sys_choice");
+  c.addQuery("name", "incident");
+  c.addQuery("element", "urgency");
+  c.addQuery("inactive", false);
+  c.orderBy("sequence");
+  c.query();
+  while (c.next()) {
+    out.push({ value: String(c.value), label: String(c.label || c.value) });
+  }
+  return out;
+},
+
+listImpactChoices: function () {
+  var out = [];
+  var c = new GlideRecord("sys_choice");
+  c.addQuery("name", "incident");
+  c.addQuery("element", "impact");
+  c.addQuery("inactive", false);
+  c.orderBy("sequence");
+  c.query();
+  while (c.next()) {
+    out.push({ value: String(c.value), label: String(c.label || c.value) });
+  }
+  return out;
+},
+
+resolveImpactValue: function (input) {
+  if (!input) return null;
+  var s = String(input).trim();
+  // Accept explicit values "1","2","3"
+  if (/^[1-3]$/.test(s)) return s;
+
+  var c = new GlideRecord('sys_choice');
+  c.addQuery('name', 'incident');
+  c.addQuery('element', 'impact');
+  c.addQuery('inactive', false);
+  c.query();
+  while (c.next()) {
+    var label = String(c.label || '');
+    var value = String(c.value || '');
+    if (label.toLowerCase() === s.toLowerCase()) return value;
+  }
+  return null;
+},
+
+resolveUrgencyValue: function (input) {
+  if (!input) return null;
+  var s = String(input).trim();
+  // Accept explicit values "1","2","3"
+  if (/^[1-3]$/.test(s)) return s;
+
+  // Accept labels like "High", "Medium", "Low" (from sys_choice)
+  var c = new GlideRecord('sys_choice');
+  c.addQuery('name', 'incident');
+  c.addQuery('element', 'urgency');
+  c.addQuery('inactive', false);
+  c.query();
+  while (c.next()) {
+    var label = String(c.label || '');
+    var value = String(c.value || '');
+    if (label.toLowerCase() === s.toLowerCase()) return value;
+  }
+  return null;
+},
+
+  _integrationUserProp: function () {
+    return 'x_alati_snow_intgr.integration_user_sys_id';
+  },
+
+  getIntegrationUserSysId: function () {
+    var prop = this._integrationUserProp();
+    var existingId = String(gs.getProperty(prop) || '').trim();
+
+    // 1) property already set and valid?
+    if (existingId) {
+      var check = new GlideRecord('sys_user');
+      if (check.get(existingId) && String(check.active) === 'true') {
+        return String(check.sys_id);
+      }
+    }
+
+    // 2) find by username
+    var uname = this._integrationUserName();
+    var userRec = new GlideRecord('sys_user');
+    userRec.addQuery('user_name', uname);
+    userRec.setLimit(1);
+    userRec.query();
+    if (userRec.next()) {
+      if (String(userRec.active) !== 'true') {
+        userRec.active = true;
+        userRec.update();
+      }
+      gs.setProperty(prop, String(userRec.sys_id));
+      return String(userRec.sys_id);
+    }
+  },
+
+  type: 'AlationUtils'
+};
+]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 11:22:55</sys_created_on>
+        <sys_id>28183be72fd936902bc1102cbfa4e3b3</sys_id>
+        <sys_mod_count>8</sys_mod_count>
+        <sys_name>AlationUtils</sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sys_script_include_28183be72fd936902bc1102cbfa4e3b3</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-03 11:53:22</sys_updated_on>
+    </sys_script_include>
+</record_update>

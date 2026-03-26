@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_ws_operation">
+    <sys_ws_operation action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <consumes>application/json,application/xml,text/xml</consumes>
+        <consumes_customized>false</consumes_customized>
+        <default_operation_uri/>
+        <enforce_acl>13c453972feb32505020f54fafa4e3f8</enforce_acl>
+        <http_method>GET</http_method>
+        <name>Get Impacts</name>
+        <operation_script><![CDATA[(function process(request, response) {
+  var utils = new AlationUtils();
+
+  var options = listChoices('impact');
+  return utils.ok(response, 200, { options: options });
+
+  function listChoices(element) {
+    var lang = (gs.getSession && gs.getSession().getLanguage) ? gs.getSession().getLanguage() : 'en';
+
+    var impactsRec = new GlideRecord('sys_choice');
+    impactsRec.addQuery('name', 'incident');
+    impactsRec.addQuery('element', element);
+    var q = impactsRec.addQuery('inactive', false);
+    q.addOrCondition('inactive', '');
+    impactsRec.orderBy('sequence');
+    impactsRec.query();
+
+    var byVal = {};
+    while (impactsRec.next()) {
+      var value = String(impactsRec.value || '');
+      if (!value) continue;
+
+      var recLang = String(impactsRec.language || '');
+      var sequence = parseInt(String(impactsRec.sequence || '9999'), 10);
+      var label = String(impactsRec.label || value);
+
+      var score = (recLang === lang) ? 3 : (recLang === 'en' ? 2 : (recLang === '' ? 1 : 0));
+      var prev = byVal[value];
+      if (!prev || score > prev._score) {
+        byVal[value] = { value: value, label: label, sequence: sequence, _score: score };
+      }
+    }
+
+    var out = [];
+    for (var k in byVal) out.push(byVal[k]);
+    if (!out.length) {
+      out = [
+        { value: '1', label: '1 - High',   sequence: 10 },
+        { value: '2', label: '2 - Medium', sequence: 20 },
+        { value: '3', label: '3 - Low',    sequence: 30 }
+      ];
+    }
+
+    out.sort(function(a, b) {
+      if (a.sequence !== b.sequence) return a.sequence - b.sequence;
+      if (a.value === b.value) return 0;
+      return a.value < b.value ? -1 : 1;
+    });
+
+    return out.map(function(o) { return { value: o.value, label: o.label }; });
+  }
+})(request, response);
+]]></operation_script>
+        <operation_uri>/api/x_alati_snow_intgr/v1/impacts</operation_uri>
+        <produces>application/json,application/xml,text/xml</produces>
+        <produces_customized>false</produces_customized>
+        <relative_path>/impacts</relative_path>
+        <request_example/>
+        <requires_acl_authorization>true</requires_acl_authorization>
+        <requires_authentication>true</requires_authentication>
+        <requires_snc_internal_role>true</requires_snc_internal_role>
+        <short_description/>
+        <sys_class_name>sys_ws_operation</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 11:32:33</sys_created_on>
+        <sys_id>915ab3eb2fd936902bc1102cbfa4e38b</sys_id>
+        <sys_mod_count>4</sys_mod_count>
+        <sys_name>Get Impacts</sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sys_ws_operation_915ab3eb2fd936902bc1102cbfa4e38b</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-16 10:37:02</sys_updated_on>
+        <web_service_definition display_value="Alation Incidents API">993973ab2fd936902bc1102cbfa4e33c</web_service_definition>
+        <web_service_version/>
+    </sys_ws_operation>
+</record_update>

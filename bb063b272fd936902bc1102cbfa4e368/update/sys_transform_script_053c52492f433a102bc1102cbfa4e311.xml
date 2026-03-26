@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_transform_script">
+    <sys_transform_script action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <map display_value="Alation Inbound Transform map">94fa9e852f433a102bc1102cbfa4e31f</map>
+        <order>100</order>
+        <script><![CDATA[(function runTransformScript(source, target, map, log, isUpdate) {
+  var utils = new AlationUtils();
+
+  // Always set correlation_id from external id
+  var ext = String(source.u_external_incident_id || '').trim();
+  if (ext) target.correlation_id = ext;
+
+  // Basic fields
+  var summary = String(source.u_summary || '').trim();
+  if (summary) target.short_description = summary;
+
+  if (source.u_description != null) target.description = String(source.u_description);
+
+  // Resolve Impact/Urgency (store raw in staging; resolve here)
+  var impactVal  = utils.resolveImpactValue(source.u_impact);
+  var urgencyVal = utils.resolveUrgencyValue(source.u_urgency);
+  if (impactVal)  target.impact  = impactVal;
+  if (urgencyVal) target.urgency = urgencyVal;
+
+  // Priority (you already resolve in utils for task/incident; do it similarly if needed)
+  var pr = utils.resolvePriorityValue(source.u_priority);
+  if (pr) target.priority = pr;
+
+  // Category/Subcategory
+  var catVal = utils.resolveCategoryValue(source.u_category);
+  if (catVal) target.category = catVal;
+
+  var subVal = utils.resolveSubcategoryValue(catVal || '', source.u_subcategory);
+  if (subVal) target.subcategory = subVal;
+
+  // Optional state
+  var sv = utils.resolveStateValue(source.u_state);
+  if (sv) target.state = sv;
+
+  // Assignment group (sys_id or name)
+  var grpIn = String(source.u_assignment_group || '').trim();
+  if (grpIn) {
+    var groupRec = new GlideRecord('sys_user_group');
+    if (groupRec.get(grpIn)) {
+      target.assignment_group = groupRec.sys_id;
+    } else {
+      groupRec.addQuery('name', grpIn);
+      groupRec.setLimit(1);
+      groupRec.query();
+      if (groupRec.next()) target.assignment_group = groupRec.sys_id;
+    }
+  }
+
+  // Assignee (sys_id or user_name)
+  var assigneeIn = String(source.u_assigned_to || '').trim();
+  if (assigneeIn) {
+    var userRec = new GlideRecord('sys_user');
+    if (userRec.get(assigneeIn)) {
+      target.assigned_to = userRec.sys_id;
+    } else {
+      userRec.addQuery('user_name', assigneeIn);
+      userRec.setLimit(1);
+      userRec.query();
+      if (userRec.next()) target.assigned_to = userRec.sys_id;
+    }
+  }
+
+})(source, target, map, log, action === "update");
+]]></script>
+        <sys_class_name>sys_transform_script</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-02-12 10:06:42</sys_created_on>
+        <sys_id>053c52492f433a102bc1102cbfa4e311</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>onBefore</sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sys_transform_script_053c52492f433a102bc1102cbfa4e311</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-02-12 10:06:42</sys_updated_on>
+        <when>onBefore</when>
+    </sys_transform_script>
+</record_update>

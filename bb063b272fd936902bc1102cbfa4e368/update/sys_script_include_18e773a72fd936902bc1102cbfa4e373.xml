@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_alati_snow_intgr.AlationSettingsAjax</api_name>
+        <caller_access/>
+        <client_callable>true</client_callable>
+        <description/>
+        <mobile_callable>false</mobile_callable>
+        <name>AlationSettingsAjax</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[// Name: AlationSettingsAjax
+// Client callable: true
+// Extends: global.AbstractAjaxProcessor
+var AlationSettingsAjax = Class.create();
+AlationSettingsAjax.prototype = Object.extendsObject(global.AbstractAjaxProcessor, {
+  _checkAccess: function () {
+    if (!gs.hasRole('admin') && !gs.hasRole('x_alati_snow_intgr.admin'))
+      throw 'Not authorized';
+  },
+
+  get: function () {
+    var utils  = new AlationUtils();
+    var host   = gs.getProperty('x_alati_snow_intgr.alation_host') || '';
+    var tenant = gs.getProperty('x_alati_snow_intgr.tenant_id') || '';
+	var regName = gs.getProperty('x_alati_snow_intgr.oauth_registry_name') || 'Alation Integration OAuth';
+    var intUser = gs.getProperty('x_alati_snow_intgr.integration_user_name') || 'alation_integration';
+    var scope   = gs.getProperty('x_alati_snow_intgr.oauth_scope') || '';
+
+    return JSON.stringify({
+		ok: true,
+		alationHost: host,
+		tenantId: tenant,
+		oauthRegistryName: regName,
+		integrationUsername: intUser,
+		oauthScope: scope
+    });
+  },
+
+  // Save settings & register (POST). Only persist if registration succeeds.
+  save: function () {
+    this._checkAccess();
+
+    var utils = new AlationUtils();
+    var reg   = new AlationRegistration();
+
+    var host   = (this.getParameter('sysparm_alation_host') || '').trim();
+    var tenant = (this.getParameter('sysparm_tenant_id')   || '').trim();
+
+    if (!utils.isValidAlationHost(host))
+      return JSON.stringify({ ok:false, error:'Alation Host must look like xyz.alationcloud.com' });
+    if (!tenant)
+      return JSON.stringify({ ok:false, error:'Provide Alation Tenant ID' });
+
+		// NEW inputs
+	var oauthClientSecret = (this.getParameter('sysparm_oauth_client_secret') || '').trim();
+	var integrationPass   = (this.getParameter('sysparm_integration_password') || '').trim();
+
+	// Optional inputs (non-secret)
+	var oauthRegistryName = (this.getParameter('sysparm_oauth_registry_name') || 
+	'Alation Integration OAuth').trim();
+	var integrationUser   = (this.getParameter('sysparm_integration_username') || 'alation_integration').trim();
+	var oauthScope        = (this.getParameter('sysparm_oauth_scope') || '').trim();
+
+	// Validate required secrets for password grant
+	if (!oauthClientSecret)
+		return JSON.stringify({ ok:false, error:'OAuth Client Secret is required (paste from OAuth registry)' });
+	if (!integrationPass)
+		return JSON.stringify({ ok:false, error:'Integration user password is required (for password grant)' });
+
+	// Persist secrets (password2 props)
+	gs.setProperty('x_alati_snow_intgr.oauth_client_secret', oauthClientSecret);
+	gs.setProperty('x_alati_snow_intgr.integration_user_password', integrationPass);
+
+	// Persist non-secret defaults
+	gs.setProperty('x_alati_snow_intgr.oauth_registry_name', oauthRegistryName);
+	gs.setProperty('x_alati_snow_intgr.integration_user_name', integrationUser);
+	gs.setProperty('x_alati_snow_intgr.oauth_scope', oauthScope);
+
+    // Call registration first (POST)
+    var regRes = reg.registerWithGoService(host, tenant, 'POST', utils.getOrCreateApiKey());
+    if (!regRes || regRes.ok !== true) {
+      var msg = (regRes && (regRes.reason || regRes.body)) || 'Registration failed';
+      // unwrap JSON error from Go if possible
+      try { var b = JSON.parse(String(regRes.body || '{}')); msg = String(b.error || b.message || msg); } catch (ignore) {}
+      return JSON.stringify({ ok:false, error: msg, status: regRes && regRes.status ? Number(regRes.status) : 0 });
+    }
+
+    // Persist only on success
+    gs.setProperty('x_alati_snow_intgr.alation_host', utils.normalizeHost(host));
+    gs.setProperty('x_alati_snow_intgr.tenant_id', tenant);
+
+    return JSON.stringify({ ok:true, message:'Settings updated.' });
+  },
+
+  // ---------- NEW: Rotate API key & PUT register ----------
+  rotate_token: function () {
+    this._checkAccess();
+    var utils = new AlationUtils();
+    var reg   = new AlationRegistration();
+
+    var host   = gs.getProperty('x_alati_snow_intgr.alation_host') || '';
+    var tenant = gs.getProperty('x_alati_snow_intgr.tenant_id') || '';
+    if (!utils.isValidAlationHost(host))
+      return JSON.stringify({ ok:false, error:'Alation Host not configured' });
+    if (!tenant)
+      return JSON.stringify({ ok:false, error:'Alation Tenant ID not configured' });
+
+    // Rotate local key
+    var fresh = utils.rotateApiKey();
+
+    // PUT to update registration (send fresh token)
+    var regRes = reg.registerWithGoService(host, tenant, 'PUT', fresh);
+    if (!regRes || regRes.ok !== true) {
+      var msg = (regRes && (regRes.reason || regRes.body)) || 'Token rotate failed';
+      try { var b = JSON.parse(String(regRes.body || '{}')); msg = String(b.error || b.message || msg); } catch (ignore) {}
+      return JSON.stringify({ ok:false, error: msg, status: regRes && regRes.status ? Number(regRes.status) : 0 });
+    }
+
+    return JSON.stringify({ ok:true, message:'New token generated & registered.' });
+  },
+
+  type: 'AlationSettingsAjax'
+});
+]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 11:22:03</sys_created_on>
+        <sys_id>18e773a72fd936902bc1102cbfa4e373</sys_id>
+        <sys_mod_count>7</sys_mod_count>
+        <sys_name>AlationSettingsAjax</sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sys_script_include_18e773a72fd936902bc1102cbfa4e373</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-16 15:47:13</sys_updated_on>
+    </sys_script_include>
+</record_update>

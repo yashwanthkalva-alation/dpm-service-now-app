@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_ws_operation">
+    <sys_ws_operation action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <consumes>application/json,application/xml,text/xml</consumes>
+        <consumes_customized>false</consumes_customized>
+        <default_operation_uri/>
+        <enforce_acl>13c453972feb32505020f54fafa4e3f8</enforce_acl>
+        <http_method>GET</http_method>
+        <name>Get Categories</name>
+        <operation_script><![CDATA[(function process(request, response) {
+  var utils = new AlationUtils();
+
+  var qs = request.queryParams || {};
+  var qRaw = (qs.q || '').toString();
+  var q = qRaw ? qRaw.trim().toLowerCase() : '';
+  var startAt = parseInt(qs.startAt, 10); if (isNaN(startAt) || startAt < 0) startAt = 0;
+  var maxResults = parseInt(qs.maxResults, 10); if (isNaN(maxResults) || maxResults < 1) maxResults = 25;
+  if (maxResults > 100) maxResults = 100;
+
+  var lang = gs.getSession().getLanguage() || 'en';
+
+  var choiceRec = new GlideRecord('sys_choice');
+  choiceRec.addQuery('name', 'incident');
+  choiceRec.addQuery('element', 'category');
+  choiceRec.addQuery('inactive', false);
+  choiceRec.addQuery('language', lang);
+  choiceRec.orderBy('sequence');
+  choiceRec.orderBy('label');
+  choiceRec.query();
+
+  var results = [];
+  var seen = 0;
+  while (choiceRec.next()) {
+    var value = String(choiceRec.value || '');
+    var label = String(choiceRec.label || value);
+    if (q) {
+      var hay = (label + ' ' + value).toLowerCase();
+      if (hay.indexOf(q) === -1) continue;
+    }
+    if (seen++ < startAt) continue;
+    results.push({ value: value, label: label });
+    if (results.length >= maxResults) break;
+  }
+
+  var nextStartAt = results.length === maxResults ? (startAt + results.length) : null;
+
+  return utils.ok(response, 200, {
+    startAt: startAt,
+    maxResults: maxResults,
+    nextStartAt: nextStartAt,
+    results: results
+  });
+})(request, response);
+]]></operation_script>
+        <operation_uri>/api/x_alati_snow_intgr/v1/categories</operation_uri>
+        <produces>application/json,application/xml,text/xml</produces>
+        <produces_customized>false</produces_customized>
+        <relative_path>/categories</relative_path>
+        <request_example/>
+        <requires_acl_authorization>true</requires_acl_authorization>
+        <requires_authentication>true</requires_authentication>
+        <requires_snc_internal_role>true</requires_snc_internal_role>
+        <short_description/>
+        <sys_class_name>sys_ws_operation</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-25 11:29:48</sys_created_on>
+        <sys_id>ccb9bfab2fd936902bc1102cbfa4e30b</sys_id>
+        <sys_mod_count>6</sys_mod_count>
+        <sys_name>Get Categories</sys_name>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_update_name>sys_ws_operation_ccb9bfab2fd936902bc1102cbfa4e30b</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-16 10:36:40</sys_updated_on>
+        <web_service_definition display_value="Alation Incidents API">993973ab2fd936902bc1102cbfa4e33c</web_service_definition>
+        <web_service_version/>
+    </sys_ws_operation>
+</record_update>
