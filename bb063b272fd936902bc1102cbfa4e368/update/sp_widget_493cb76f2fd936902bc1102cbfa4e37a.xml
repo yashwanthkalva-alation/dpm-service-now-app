@@ -80,7 +80,7 @@
 				"Create username: <span class='tour-fixed'>" + FIXED_INTEGRATION_USERNAME + "</span><br/>" +
 				"Set Password for this User<br/>" +
 				"<b>Note:</b> On the user form, check <b>Internal Integration User</b>.<br/>" +
-				"Assign the role <span class='tour-fixed'>x_alati_snow_intgr.admin</span> to this user under the <b>Roles</b> tab.<br/><br/>" +
+				"Assign the role <span class='tour-fixed'>x_alati_dpm_serv_0.admin</span> to this user under the <b>Roles</b> tab.<br/><br/>" +
 				"<a class='btn btn-default btn-sm' target='_blank' href='" + newUserLink + "'>Open: New User</a> " +
 				"<a class='btn btn-link btn-sm' target='_blank' href='" + userListLink + "'>Open: Users list</a>"
 			)
@@ -175,7 +175,7 @@
   };
 
   function load() {
-    var ga = new GlideAjax('x_alati_snow_intgr.AlationSettingsAjax');
+    var ga = new GlideAjax('x_alati_dpm_serv_0.AlationSettingsAjax');
     ga.addParam('sysparm_name', 'get');
     ga.getXMLAnswer(function (answer) {
       if (!answer) return;
@@ -202,7 +202,7 @@
     $scope.state.message = '';
     $scope.state.error = '';
 
-    var ga = new GlideAjax('x_alati_snow_intgr.AlationSettingsAjax');
+    var ga = new GlideAjax('x_alati_dpm_serv_0.AlationSettingsAjax');
     ga.addParam('sysparm_name', 'save');
 
     ga.addParam('sysparm_alation_host', strip($scope.state.alationHost));
@@ -245,7 +245,7 @@
     $scope.state.message = '';
     $scope.state.error = '';
 
-    var ga = new GlideAjax('x_alati_snow_intgr.AlationSettingsAjax');
+    var ga = new GlideAjax('x_alati_dpm_serv_0.AlationSettingsAjax');
     ga.addParam('sysparm_name', 'rotate_token');
     ga.getXMLAnswer(function (answer) {
       $scope.$apply(function () {
@@ -290,17 +290,17 @@
         <name>Alation SNow Integration UI</name>
         <option_schema/>
         <public>false</public>
-        <roles>admin,x_alati_snow_intgr.admin</roles>
+        <roles>admin,x_alati_dpm_serv_0.admin</roles>
         <script><![CDATA[data.prefill = {
-  alationHost: gs.getProperty('x_alati_snow_intgr.alation_host') || '',
-  tenantId: gs.getProperty('x_alati_snow_intgr.tenant_id') || '',
+  alationHost: gs.getProperty('x_alati_dpm_serv_0.alation_host') || '',
+  tenantId: gs.getProperty('x_alati_dpm_serv_0.tenant_id') || '',
 
-  oauthRegistryName: gs.getProperty('x_alati_snow_intgr.oauth_registry_name') || 'Alation Integration OAuth',
-  integrationUsername: gs.getProperty('x_alati_snow_intgr.integration_user_name') || 'alation_integration',
-  oauthScope: gs.getProperty('x_alati_snow_intgr.oauth_scope') || ''
+  oauthRegistryName: gs.getProperty('x_alati_dpm_serv_0.oauth_registry_name') || 'Alation Integration OAuth',
+  integrationUsername: gs.getProperty('x_alati_dpm_serv_0.integration_user_name') || 'alation_integration',
+  oauthScope: gs.getProperty('x_alati_dpm_serv_0.oauth_scope') || ''
 };
 
-if (!gs.hasRole('admin') && !gs.hasRole('x_alati_snow_intgr.admin')) {
+if (!gs.hasRole('admin') && !gs.hasRole('x_alati_dpm_serv_0.admin')) {
   data.notAllowed = true;
 }]]></script>
         <servicenow>false</servicenow>
@@ -310,7 +310,7 @@ if (!gs.hasRole('admin') && !gs.hasRole('x_alati_snow_intgr.admin')) {
         <sys_id>493cb76f2fd936902bc1102cbfa4e37a</sys_id>
         <sys_mod_count>25</sys_mod_count>
         <sys_name>Alation SNow Integration UI</sys_name>
-        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_dpm_serv_0">bb063b272fd936902bc1102cbfa4e368</sys_package>
         <sys_policy/>
         <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
         <sys_update_name>sp_widget_493cb76f2fd936902bc1102cbfa4e37a</sys_update_name>

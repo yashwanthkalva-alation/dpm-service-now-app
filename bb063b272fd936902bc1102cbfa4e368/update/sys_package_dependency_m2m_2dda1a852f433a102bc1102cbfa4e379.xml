@@ -6,7 +6,7 @@
         <sys_created_on>2026-02-12 09:59:55</sys_created_on>
         <sys_id>2dda1a852f433a102bc1102cbfa4e379</sys_id>
         <sys_mod_count>0</sys_mod_count>
-        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_dpm_serv_0">bb063b272fd936902bc1102cbfa4e368</sys_package>
         <sys_updated_by>admin</sys_updated_by>
         <sys_updated_on>2026-02-12 09:59:55</sys_updated_on>
     </sys_package_dependency_m2m>

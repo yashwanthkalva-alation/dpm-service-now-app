@@ -2,7 +2,7 @@
     <sys_script_include action="INSERT_OR_UPDATE">
         <access>package_private</access>
         <active>true</active>
-        <api_name>x_alati_snow_intgr.AlationOutbound</api_name>
+        <api_name>x_alati_dpm_serv_0.AlationOutbound</api_name>
         <caller_access/>
         <client_callable>false</client_callable>
         <description/>
@@ -123,13 +123,13 @@ AlationOutbound.prototype = {
 
   _sendToGo: function (payload) {
   var utils  = new AlationUtils();
-  var host   = gs.getProperty('x_alati_snow_intgr.alation_host') || '';
-  var tenant = gs.getProperty('x_alati_snow_intgr.tenant_id')    || '';
+  var host   = gs.getProperty('x_alati_dpm_serv_0.alation_host') || '';
+  var tenant = gs.getProperty('x_alati_dpm_serv_0.tenant_id')    || '';
   if (!utils.isValidAlationHost(host) || !tenant) {
     return { ok:false, reason:'host/tenant not configured' };
   }
 
-  var apiKey = (gs.getProperty('x_alati_snow_intgr.api_key') || '').trim();
+  var apiKey = (gs.getProperty('x_alati_dpm_serv_0.api_key') || '').trim();
   if (!apiKey) {
     return { ok:false, reason:'api key not configured' };
   }
@@ -152,7 +152,7 @@ AlationOutbound.prototype = {
     return { ok:true};
 
   } catch (e) {
-    gs.warn('[x_alati_snow_intgr] outbound error: ' + e);
+    gs.warn('[x_alati_dpm_serv_0] outbound error: ' + e);
     return { ok:false, reason: String(e) };
   }
 },
@@ -169,7 +169,7 @@ AlationOutbound.prototype = {
       var payload = this._buildPayload(current, changes);
       this._sendToGo(payload);
     } catch (e) {
-      gs.warn('[x_alati_snow_intgr] notifyIncidentChange failed: ' + e);
+      gs.warn('[x_alati_dpm_serv_0] notifyIncidentChange failed: ' + e);
     }
   },
 
@@ -191,7 +191,7 @@ AlationOutbound.prototype = {
         <sys_id>d9577fa72fd936902bc1102cbfa4e3df</sys_id>
         <sys_mod_count>10</sys_mod_count>
         <sys_name>AlationOutbound</sys_name>
-        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_dpm_serv_0">bb063b272fd936902bc1102cbfa4e368</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
         <sys_update_name>sys_script_include_d9577fa72fd936902bc1102cbfa4e3df</sys_update_name>

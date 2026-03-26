@@ -59,7 +59,7 @@
   // -------------------------
   var requestId = gs.generateGUID();
 
-  var STAGING_TABLE = 'x_alati_snow_intgr_alation_inbound_incident_staging';
+  var STAGING_TABLE = 'x_alati_dpm_serv_0_alation_inbound_incident_staging';
 
   var stageRec = new GlideRecord(STAGING_TABLE);
   stageRec.initialize();
@@ -122,7 +122,7 @@
   // -------------------------
   // Run Transform Map (SYNC)
   // -------------------------
-  var mapSysId = String(gs.getProperty('x_alati_snow_intgr.transform_map_incident_sys_id') || '').trim();
+  var mapSysId = String(gs.getProperty('x_alati_dpm_serv_0.transform_map_incident_sys_id') || '').trim();
   if (!mapSysId) {
     stageRec.u_processing_status = 'error';
     stageRec.u_processing_error  = 'transform map sys_id property not configured';
@@ -190,7 +190,7 @@
 
 })(request, response);
 ]]></operation_script>
-        <operation_uri>/api/x_alati_snow_intgr/v1/incident</operation_uri>
+        <operation_uri>/api/x_alati_dpm_serv_0/v1/incident</operation_uri>
         <produces>application/json,application/xml,text/xml</produces>
         <produces_customized>false</produces_customized>
         <relative_path>/incident</relative_path>
@@ -205,7 +205,7 @@
         <sys_id>77cabb2f2fd936902bc1102cbfa4e383</sys_id>
         <sys_mod_count>8</sys_mod_count>
         <sys_name>Update Incident</sys_name>
-        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_dpm_serv_0">bb063b272fd936902bc1102cbfa4e368</sys_package>
         <sys_policy/>
         <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
         <sys_update_name>sys_ws_operation_77cabb2f2fd936902bc1102cbfa4e383</sys_update_name>

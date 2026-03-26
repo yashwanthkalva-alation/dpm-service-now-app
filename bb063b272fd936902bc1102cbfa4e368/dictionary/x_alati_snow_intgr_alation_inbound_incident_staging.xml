@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?><database>
-    <element db_object_id="7179dec12f433a102bc1102cbfa4e3f2" extends="sys_import_set_row" label="Alation Inbound Incident Staging" max_length="40" name="x_alati_snow_intgr_alation_inbound_incident_staging" type="collection">
+    <element db_object_id="7179dec12f433a102bc1102cbfa4e3f2" extends="sys_import_set_row" label="Alation Inbound Incident Staging" max_length="40" name="x_alati_dpm_serv_0_alation_inbound_incident_staging" type="collection">
         <element label="Urgency" max_length="40" name="u_urgency" type="string"/>
         <element label="External incident ID" max_length="255" name="u_external_incident_id" type="string"/>
         <element label="State" max_length="40" name="u_state" type="string"/>

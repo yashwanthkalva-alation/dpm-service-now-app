@@ -2,7 +2,7 @@
     <sys_script_include action="INSERT_OR_UPDATE">
         <access>package_private</access>
         <active>true</active>
-        <api_name>x_alati_snow_intgr.AlationHmacJS</api_name>
+        <api_name>x_alati_dpm_serv_0.AlationHmacJS</api_name>
         <caller_access/>
         <client_callable>false</client_callable>
         <description/>
@@ -10,13 +10,13 @@
         <name>AlationHmacJS</name>
         <sandbox_callable>false</sandbox_callable>
         <script><![CDATA[// Name: AlationHmacJS
-// Scope: x_alati_snow_intgr
+// Scope: x_alati_dpm_serv_0
 // Pure-JS HMAC-SHA256 (Base64 output). No cross-scope APIs, zero-admin.
 var AlationHmacJS = Class.create();
 AlationHmacJS.prototype = {
   initialize: function () {},
 
-  _prop: function () { return 'x_alati_snow_intgr.hmac_secret'; },
+  _prop: function () { return 'x_alati_dpm_serv_0.hmac_secret'; },
 
   // Create once if missing (64 hex chars via 2 GUIDs). No GlideSecureRandomUtil.
   _ensureSecret: function () {
@@ -201,7 +201,7 @@ AlationHmacJS.prototype = {
         <sys_id>20f63b672fd936902bc1102cbfa4e3d6</sys_id>
         <sys_mod_count>0</sys_mod_count>
         <sys_name>AlationHmacJS</sys_name>
-        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_dpm_serv_0">bb063b272fd936902bc1102cbfa4e368</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
         <sys_update_name>sys_script_include_20f63b672fd936902bc1102cbfa4e3d6</sys_update_name>

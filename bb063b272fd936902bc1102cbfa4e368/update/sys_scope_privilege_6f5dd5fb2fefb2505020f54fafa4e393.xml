@@ -9,7 +9,7 @@
         <sys_id>6f5dd5fb2fefb2505020f54fafa4e393</sys_id>
         <sys_mod_count>0</sys_mod_count>
         <sys_name>sys_user_group</sys_name>
-        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_dpm_serv_0">bb063b272fd936902bc1102cbfa4e368</sys_package>
         <sys_policy/>
         <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
         <sys_update_name>sys_scope_privilege_6f5dd5fb2fefb2505020f54fafa4e393</sys_update_name>

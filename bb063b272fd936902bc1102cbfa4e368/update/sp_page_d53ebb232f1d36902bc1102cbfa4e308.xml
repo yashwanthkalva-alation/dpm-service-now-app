@@ -9,7 +9,7 @@
         <internal>false</internal>
         <omit_watcher>false</omit_watcher>
         <public>false</public>
-        <roles>admin,x_alati_snow_intgr.admin</roles>
+        <roles>admin,x_alati_dpm_serv_0.admin</roles>
         <seo_script/>
         <short_description/>
         <sys_class_name>sp_page</sys_class_name>
@@ -18,7 +18,7 @@
         <sys_id>d53ebb232f1d36902bc1102cbfa4e308</sys_id>
         <sys_mod_count>1</sys_mod_count>
         <sys_name>alation_snow_integration</sys_name>
-        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_dpm_serv_0">bb063b272fd936902bc1102cbfa4e368</sys_package>
         <sys_policy/>
         <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
         <sys_update_name>sp_page_d53ebb232f1d36902bc1102cbfa4e308</sys_update_name>

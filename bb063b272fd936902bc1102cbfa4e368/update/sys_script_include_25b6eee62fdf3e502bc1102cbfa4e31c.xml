@@ -2,7 +2,7 @@
     <sys_script_include action="INSERT_OR_UPDATE">
         <access>package_private</access>
         <active>true</active>
-        <api_name>x_alati_snow_intgr.AlationOAuthDiscovery</api_name>
+        <api_name>x_alati_dpm_serv_0.AlationOAuthDiscovery</api_name>
         <caller_access/>
         <client_callable>false</client_callable>
         <description/>
@@ -10,14 +10,14 @@
         <name>AlationOAuthDiscovery</name>
         <sandbox_callable>false</sandbox_callable>
         <script><![CDATA[// Name: AlationOAuthDiscovery
-// Scope: x_alati_snow_intgr
+// Scope: x_alati_dpm_serv_0
 var AlationOAuthDiscovery = Class.create();
 AlationOAuthDiscovery.prototype = {
   initialize: function () {},
 
   // Returns { ok:true, oauth: { token_url, client_id, ... } }
   discover: function () {
-    var regName = String(gs.getProperty("x_alati_snow_intgr.oauth_registry_name") || "").trim();
+    var regName = String(gs.getProperty("x_alati_dpm_serv_0.oauth_registry_name") || "").trim();
 
     // ServiceNow token endpoint (standard)
     var tokenUrl = (gs.getProperty("glide.servlet.uri") || "").replace(/\/+$/,"") + "/oauth_token.do";
@@ -38,13 +38,13 @@ AlationOAuthDiscovery.prototype = {
       return { ok:false, error:"OAuth registry missing client_id (name: " + regName + ")" };
     }
 
-	var clientSecret = String(gs.getProperty("x_alati_snow_intgr.oauth_client_secret") || "").trim();
+	var clientSecret = String(gs.getProperty("x_alati_dpm_serv_0.oauth_client_secret") || "").trim();
 
     // If you want to enforce a scope, hardcode or store in property; else blank
     var scope = "";
 
-	var username = String(gs.getProperty("x_alati_snow_intgr.integration_user_name") || "").trim(); // "alation_integration"
-    var password = String(gs.getProperty("x_alati_snow_intgr.integration_user_password") || "").trim();
+	var username = String(gs.getProperty("x_alati_dpm_serv_0.integration_user_name") || "").trim(); // "alation_integration"
+    var password = String(gs.getProperty("x_alati_dpm_serv_0.integration_user_password") || "").trim();
 
     if (!password) return { ok:false, error:"Missing integration user password property" };
 
@@ -68,7 +68,7 @@ AlationOAuthDiscovery.prototype = {
         <sys_id>25b6eee62fdf3e502bc1102cbfa4e31c</sys_id>
         <sys_mod_count>5</sys_mod_count>
         <sys_name>AlationOAuthDiscovery</sys_name>
-        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_dpm_serv_0">bb063b272fd936902bc1102cbfa4e368</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
         <sys_update_name>sys_script_include_25b6eee62fdf3e502bc1102cbfa4e31c</sys_update_name>

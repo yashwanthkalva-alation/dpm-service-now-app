@@ -2,7 +2,7 @@
     <sys_script_include action="INSERT_OR_UPDATE">
         <access>public</access>
         <active>true</active>
-        <api_name>x_alati_snow_intgr.AlationSettingsAjax</api_name>
+        <api_name>x_alati_dpm_serv_0.AlationSettingsAjax</api_name>
         <caller_access/>
         <client_callable>true</client_callable>
         <description/>
@@ -15,17 +15,17 @@
 var AlationSettingsAjax = Class.create();
 AlationSettingsAjax.prototype = Object.extendsObject(global.AbstractAjaxProcessor, {
   _checkAccess: function () {
-    if (!gs.hasRole('admin') && !gs.hasRole('x_alati_snow_intgr.admin'))
+    if (!gs.hasRole('admin') && !gs.hasRole('x_alati_dpm_serv_0.admin'))
       throw 'Not authorized';
   },
 
   get: function () {
     var utils  = new AlationUtils();
-    var host   = gs.getProperty('x_alati_snow_intgr.alation_host') || '';
-    var tenant = gs.getProperty('x_alati_snow_intgr.tenant_id') || '';
-	var regName = gs.getProperty('x_alati_snow_intgr.oauth_registry_name') || 'Alation Integration OAuth';
-    var intUser = gs.getProperty('x_alati_snow_intgr.integration_user_name') || 'alation_integration';
-    var scope   = gs.getProperty('x_alati_snow_intgr.oauth_scope') || '';
+    var host   = gs.getProperty('x_alati_dpm_serv_0.alation_host') || '';
+    var tenant = gs.getProperty('x_alati_dpm_serv_0.tenant_id') || '';
+	var regName = gs.getProperty('x_alati_dpm_serv_0.oauth_registry_name') || 'Alation Integration OAuth';
+    var intUser = gs.getProperty('x_alati_dpm_serv_0.integration_user_name') || 'alation_integration';
+    var scope   = gs.getProperty('x_alati_dpm_serv_0.oauth_scope') || '';
 
     return JSON.stringify({
 		ok: true,
@@ -69,13 +69,13 @@ AlationSettingsAjax.prototype = Object.extendsObject(global.AbstractAjaxProcesso
 		return JSON.stringify({ ok:false, error:'Integration user password is required (for password grant)' });
 
 	// Persist secrets (password2 props)
-	gs.setProperty('x_alati_snow_intgr.oauth_client_secret', oauthClientSecret);
-	gs.setProperty('x_alati_snow_intgr.integration_user_password', integrationPass);
+	gs.setProperty('x_alati_dpm_serv_0.oauth_client_secret', oauthClientSecret);
+	gs.setProperty('x_alati_dpm_serv_0.integration_user_password', integrationPass);
 
 	// Persist non-secret defaults
-	gs.setProperty('x_alati_snow_intgr.oauth_registry_name', oauthRegistryName);
-	gs.setProperty('x_alati_snow_intgr.integration_user_name', integrationUser);
-	gs.setProperty('x_alati_snow_intgr.oauth_scope', oauthScope);
+	gs.setProperty('x_alati_dpm_serv_0.oauth_registry_name', oauthRegistryName);
+	gs.setProperty('x_alati_dpm_serv_0.integration_user_name', integrationUser);
+	gs.setProperty('x_alati_dpm_serv_0.oauth_scope', oauthScope);
 
     // Call registration first (POST)
     var regRes = reg.registerWithGoService(host, tenant, 'POST', utils.getOrCreateApiKey());
@@ -87,8 +87,8 @@ AlationSettingsAjax.prototype = Object.extendsObject(global.AbstractAjaxProcesso
     }
 
     // Persist only on success
-    gs.setProperty('x_alati_snow_intgr.alation_host', utils.normalizeHost(host));
-    gs.setProperty('x_alati_snow_intgr.tenant_id', tenant);
+    gs.setProperty('x_alati_dpm_serv_0.alation_host', utils.normalizeHost(host));
+    gs.setProperty('x_alati_dpm_serv_0.tenant_id', tenant);
 
     return JSON.stringify({ ok:true, message:'Settings updated.' });
   },
@@ -99,8 +99,8 @@ AlationSettingsAjax.prototype = Object.extendsObject(global.AbstractAjaxProcesso
     var utils = new AlationUtils();
     var reg   = new AlationRegistration();
 
-    var host   = gs.getProperty('x_alati_snow_intgr.alation_host') || '';
-    var tenant = gs.getProperty('x_alati_snow_intgr.tenant_id') || '';
+    var host   = gs.getProperty('x_alati_dpm_serv_0.alation_host') || '';
+    var tenant = gs.getProperty('x_alati_dpm_serv_0.tenant_id') || '';
     if (!utils.isValidAlationHost(host))
       return JSON.stringify({ ok:false, error:'Alation Host not configured' });
     if (!tenant)
@@ -129,7 +129,7 @@ AlationSettingsAjax.prototype = Object.extendsObject(global.AbstractAjaxProcesso
         <sys_id>18e773a72fd936902bc1102cbfa4e373</sys_id>
         <sys_mod_count>7</sys_mod_count>
         <sys_name>AlationSettingsAjax</sys_name>
-        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_snow_intgr">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_dpm_serv_0">bb063b272fd936902bc1102cbfa4e368</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
         <sys_update_name>sys_script_include_18e773a72fd936902bc1102cbfa4e373</sys_update_name>
