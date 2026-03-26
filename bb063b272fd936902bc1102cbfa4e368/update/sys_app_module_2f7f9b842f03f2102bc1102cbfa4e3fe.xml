@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_app_module">
     <sys_app_module action="INSERT_OR_UPDATE">
         <active>true</active>
-        <application display_value="Alation Integration for ServiceNow">0e48130c2fcfb2102bc1102cbfa4e3db</application>
+        <application display_value="Alation DPM Integration for ServiceNow">0e48130c2fcfb2102bc1102cbfa4e3db</application>
         <assessment/>
         <device_type/>
         <filter/>
@@ -28,9 +28,9 @@
         <sys_mod_count>0</sys_mod_count>
         <sys_name>Contact Support</sys_name>
         <sys_overrides/>
-        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_dpm_serv_0">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_package display_value="Alation DPM Integration for ServiceNow" source="x_alati_dpm_serv_0">bb063b272fd936902bc1102cbfa4e368</sys_package>
         <sys_policy/>
-        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_scope display_value="Alation DPM Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
         <sys_update_name>sys_app_module_2f7f9b842f03f2102bc1102cbfa4e3fe</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
         <sys_updated_on>2026-02-09 12:26:46</sys_updated_on>

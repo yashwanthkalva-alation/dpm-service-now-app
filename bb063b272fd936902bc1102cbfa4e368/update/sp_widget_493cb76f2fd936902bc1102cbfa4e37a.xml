@@ -88,9 +88,9 @@
 		4: {
 			elementId: "step-scope-switch",
 			html: $sce.trustAsHtml(
-				"<b>Step 4 — Switch scope to Alation Integration for ServiceNow</b><br/>" +
+				"<b>Step 4 — Switch scope to Alation DPM Integration for ServiceNow</b><br/>" +
 				"Use the <b>Application scope</b> picker in the header (top bar) and select:<br/>" +
-				"<span class='tour-fixed'>Alation Integration for ServiceNow</span><br/><br/>" +
+				"<span class='tour-fixed'>Alation DPM Integration for ServiceNow</span><br/><br/>" +
 				"<span class='tour-muted'>Why: Saving properties / running scripts should happen in the app scope.</span><br/><br/>" +
 				"<a class='btn btn-link btn-sm' target='_blank' href='" + appPickerLink + "'>Open: Application navigator</a>"
 			)
@@ -310,9 +310,9 @@ if (!gs.hasRole('admin') && !gs.hasRole('x_alati_dpm_serv_0.admin')) {
         <sys_id>493cb76f2fd936902bc1102cbfa4e37a</sys_id>
         <sys_mod_count>25</sys_mod_count>
         <sys_name>Alation SNow Integration UI</sys_name>
-        <sys_package display_value="Alation Integration for ServiceNow" source="x_alati_dpm_serv_0">bb063b272fd936902bc1102cbfa4e368</sys_package>
+        <sys_package display_value="Alation DPM Integration for ServiceNow" source="x_alati_dpm_serv_0">bb063b272fd936902bc1102cbfa4e368</sys_package>
         <sys_policy/>
-        <sys_scope display_value="Alation Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
+        <sys_scope display_value="Alation DPM Integration for ServiceNow">bb063b272fd936902bc1102cbfa4e368</sys_scope>
         <sys_update_name>sp_widget_493cb76f2fd936902bc1102cbfa4e37a</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
         <sys_updated_on>2026-03-16 10:43:49</sys_updated_on>
@@ -423,7 +423,7 @@ if (!gs.hasRole('admin') && !gs.hasRole('x_alati_dpm_serv_0.admin')) {
     <!-- Step 4: Switch scope instructions (not a real field, but highlight a callout) -->
     <div id="step-scope-switch" ng-class="tourClass(4)" class="alert alert-warning">
       <b>Scope reminder:</b> After creating the Global OAuth registry and user, switch scope to
-      <b>Alation Integration for ServiceNow</b> before saving these settings.
+      <b>Alation DPM Integration for ServiceNow</b> before saving these settings.
     </div>
 
     <!-- Step 5: Secrets + Save (wrap both secrets + button in one container) -->

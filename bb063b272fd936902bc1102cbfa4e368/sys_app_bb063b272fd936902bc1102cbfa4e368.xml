@@ -15,7 +15,7 @@
         <license_model>none</license_model>
         <logo>150cc8f72f5d36902bc1102cbfa4e39a</logo>
         <menu/>
-        <name>Alation Integration for ServiceNow</name>
+        <name>Alation DPM Integration for ServiceNow</name>
         <package_json/>
         <private>false</private>
         <restrict_table_access>false</restrict_table_access>
